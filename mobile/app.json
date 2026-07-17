@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Calorie Tracker",
+    "name": "DH Calorie Tracker",
     "slug": "calorie-tracker-mobile",
     "scheme": "calorietracker",
     "version": "1.0.0",
@@ -9,7 +9,10 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.dhohnholt.calorietracker"
+      "bundleIdentifier": "com.dhohnholt.calorietracker",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
