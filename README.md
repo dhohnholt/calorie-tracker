@@ -68,10 +68,13 @@ configured to use, which is a quick way to confirm connectivity.
 ### Foundation milestone scope
 
 The mobile app currently implements: a Today summary (calories, goal,
-remaining, protein, pull-to-refresh), a Log screen (USDA search, quantity in
-grams/ounces, meal + date, macro preview, recent foods to re-log), and a
-Progress screen (latest weight vs. goal, log/replace today's weight, recent
-history). Plan and Settings are placeholders for now. No USDA or Anthropic API
+remaining, protein, logged food by meal, prior-day navigation, pull-to-refresh),
+a Log screen (USDA search, quantity in grams/ounces, meal + date, macro
+preview, recent foods to re-log), a Progress screen (latest weight vs. goal,
+log/replace today's weight, recent history), and a Settings screen (profile
+name, daily calorie goal, goal weight, weight unit, height — protein goal is
+shown as a computed value derived from goal weight, not a separate setting,
+matching the web app). Plan is still a placeholder. No USDA or Anthropic API
 key ever ships in the mobile app — all such calls stay server-side, proxied
 through the existing `/api/nutrition/search` and `/api/meal-plan/ai` routes.
 

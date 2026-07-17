@@ -1,14 +1,191 @@
-import { StyleSheet, Text, View } from "react-native";
+import { useCallback, useState } from "react";
+import { Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useFocusEffect } from "expo-router";
+import { cmToIn, inToCm, proteinGoalGrams } from "calorie-tracker-shared/bodyMetrics.js";
+import { api, API_BASE_URL } from "../../src/api";
 import { useTheme, radii } from "../../src/theme";
 import Screen from "../../src/components/Screen";
-import { API_BASE_URL } from "../../src/api";
+import { LoadingState, ErrorState } from "../../src/components/StateViews";
 
 export default function SettingsScreen() {
   const theme = useTheme();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
+  const [savedMessage, setSavedMessage] = useState(null);
+
+  const [profileName, setProfileName] = useState("");
+  const [calorieGoal, setCalorieGoal] = useState("");
+  const [goalWeight, setGoalWeight] = useState("");
+  const [weightUnit, setWeightUnit] = useState("lbs");
+  const [heightInput, setHeightInput] = useState("");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const settings = await api.getSettings();
+      setProfileName(settings.profile_name || "");
+      setCalorieGoal(settings.calorie_goal != null ? String(settings.calorie_goal) : "");
+      setGoalWeight(settings.goal_weight != null ? String(settings.goal_weight) : "");
+      const unit = settings.weight_unit || "lbs";
+      setWeightUnit(unit);
+      if (settings.height_cm) {
+        const cm = Number(settings.height_cm);
+        setHeightInput(unit === "kg" ? String(cm) : String(Math.round(cmToIn(cm) * 10) / 10));
+      } else {
+        setHeightInput("");
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
+
+  function handleUnitChange(newUnit) {
+    if (newUnit === weightUnit) return;
+    if (heightInput !== "") {
+      const num = Number(heightInput);
+      if (Number.isFinite(num)) {
+        const cm = weightUnit === "kg" ? num : inToCm(num);
+        setHeightInput(newUnit === "kg" ? String(Math.round(cm)) : String(Math.round(cmToIn(cm) * 10) / 10));
+      }
+    }
+    setWeightUnit(newUnit);
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    setSaveError(null);
+    setSavedMessage(null);
+    try {
+      const heightNum = heightInput === "" ? null : Number(heightInput);
+      const heightCm = heightNum == null ? "" : weightUnit === "kg" ? heightNum : inToCm(heightNum);
+      await api.updateSettings({
+        profile_name: profileName,
+        calorie_goal: calorieGoal,
+        goal_weight: goalWeight,
+        weight_unit: weightUnit,
+        height_cm: heightCm === "" ? "" : Math.round(heightCm * 100) / 100,
+      });
+      setSavedMessage("Settings saved");
+    } catch (err) {
+      setSaveError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <Screen>
+        <LoadingState label="Loading settings…" />
+      </Screen>
+    );
+  }
+
+  if (error) {
+    return (
+      <Screen>
+        <ErrorState message={error} onRetry={load} />
+      </Screen>
+    );
+  }
+
+  const proteinGoal = proteinGoalGrams(Number(goalWeight) || 0, weightUnit);
+
   return (
     <Screen>
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content}>
         <Text style={[styles.title, { color: theme.textPrimary }]}>Settings</Text>
+
+        <View style={[styles.card, { backgroundColor: theme.surface1, borderColor: theme.border }]}>
+          <Text style={[styles.label, { color: theme.textSecondary }]}>Your name</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: theme.pagePlane, color: theme.textPrimary, borderColor: theme.border }]}
+            placeholder="e.g. David"
+            placeholderTextColor={theme.textMuted}
+            value={profileName}
+            onChangeText={setProfileName}
+          />
+
+          <Text style={[styles.label, { color: theme.textSecondary, marginTop: 12 }]}>Daily calorie goal</Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: theme.pagePlane, color: theme.textPrimary, borderColor: theme.border }]}
+            keyboardType="numeric"
+            value={calorieGoal}
+            onChangeText={setCalorieGoal}
+          />
+
+          <Text style={[styles.label, { color: theme.textSecondary, marginTop: 12 }]}>Weight unit</Text>
+          <View style={styles.unitToggle}>
+            {["lbs", "kg"].map((u) => (
+              <Pressable
+                key={u}
+                onPress={() => handleUnitChange(u)}
+                style={[
+                  styles.unitOption,
+                  { backgroundColor: weightUnit === u ? theme.series1 : "transparent", borderColor: theme.border },
+                ]}
+              >
+                <Text style={{ color: weightUnit === u ? "#fff" : theme.textSecondary, fontWeight: "600" }}>{u}</Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <Text style={[styles.label, { color: theme.textSecondary, marginTop: 12 }]}>
+            Goal weight ({weightUnit})
+          </Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: theme.pagePlane, color: theme.textPrimary, borderColor: theme.border }]}
+            keyboardType="numeric"
+            value={goalWeight}
+            onChangeText={setGoalWeight}
+          />
+
+          <Text style={[styles.label, { color: theme.textSecondary, marginTop: 12 }]}>
+            Height ({weightUnit === "kg" ? "cm" : "in"})
+          </Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: theme.pagePlane, color: theme.textPrimary, borderColor: theme.border }]}
+            keyboardType="numeric"
+            placeholder={weightUnit === "kg" ? "e.g. 178" : "e.g. 70"}
+            placeholderTextColor={theme.textMuted}
+            value={heightInput}
+            onChangeText={setHeightInput}
+          />
+
+          {proteinGoal ? (
+            <Text style={[styles.derived, { color: theme.textMuted }]}>
+              Protein goal (derived from goal weight): {proteinGoal}g/day
+            </Text>
+          ) : null}
+
+          {saveError ? <Text style={{ color: theme.statusCritical, marginTop: 8 }}>{saveError}</Text> : null}
+          {savedMessage ? <Text style={{ color: theme.statusGood, marginTop: 8 }}>{savedMessage}</Text> : null}
+
+          <Pressable
+            style={[styles.saveButton, { backgroundColor: theme.series1 }]}
+            onPress={handleSave}
+            disabled={saving}
+          >
+            <Text style={styles.saveButtonText}>{saving ? "Saving…" : "Save"}</Text>
+          </Pressable>
+        </View>
+
+        <Pressable onPress={() => Linking.openURL("https://console.anthropic.com/settings/billing")}>
+          <Text style={[styles.link, { color: theme.series1 }]}>
+            Check AI usage & billing (Anthropic Console) ↗
+          </Text>
+        </Pressable>
 
         <View style={[styles.card, { backgroundColor: theme.surface1, borderColor: theme.border }]}>
           <Text style={[styles.label, { color: theme.textSecondary }]}>Server</Text>
@@ -17,26 +194,23 @@ export default function SettingsScreen() {
             Set via EXPO_PUBLIC_API_URL. See mobile/.env.example.
           </Text>
         </View>
-
-        <View style={[styles.card, { backgroundColor: theme.surface1, borderColor: theme.border }]}>
-          <Text style={[styles.heading, { color: theme.textPrimary }]}>Coming soon</Text>
-          <Text style={[styles.body, { color: theme.textSecondary }]}>
-            Calorie goal, protein goal, weight unit, and profile settings will be editable here in
-            a future update — matching what's already on the web app.
-          </Text>
-        </View>
-      </View>
+      </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { flex: 1, padding: 16, gap: 16 },
+  content: { padding: 16, gap: 16 },
   title: { fontSize: 22, fontWeight: "700" },
-  card: { borderWidth: 1, borderRadius: radii.lg, padding: 20, gap: 6 },
+  card: { borderWidth: 1, borderRadius: radii.lg, padding: 20 },
   label: { fontSize: 13, fontWeight: "600" },
+  input: { borderWidth: 1, borderRadius: radii.sm, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, marginTop: 6 },
+  unitToggle: { flexDirection: "row", gap: 6, marginTop: 6 },
+  unitOption: { borderWidth: 1, borderRadius: radii.sm, paddingHorizontal: 16, paddingVertical: 10 },
+  derived: { fontSize: 13, marginTop: 12 },
+  saveButton: { borderRadius: radii.sm, paddingVertical: 12, alignItems: "center", marginTop: 16 },
+  saveButtonText: { color: "#fff", fontWeight: "700" },
+  link: { fontSize: 14, fontWeight: "600", textAlign: "center" },
   mono: { fontSize: 14, fontFamily: "Courier" },
-  hint: { fontSize: 12 },
-  heading: { fontSize: 17, fontWeight: "700" },
-  body: { fontSize: 14, lineHeight: 20 },
+  hint: { fontSize: 12, marginTop: 4 },
 });
