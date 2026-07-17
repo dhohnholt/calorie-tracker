@@ -5,6 +5,8 @@ import {
   defaultQuantity,
   scaledMacros,
   gramsPerTablespoon,
+  parseCountUnit,
+  unitConversionFactor,
   OZ_TO_G,
 } from "../nutritionScaling.js";
 
@@ -20,6 +22,9 @@ describe("toGrams", () => {
   });
   test("treats a missing tablespoon factor as 0g rather than throwing", () => {
     assert.equal(toGrams(2, "tbsp", undefined), 0);
+  });
+  test("converts a food's own count unit (e.g. eggs) using its factor", () => {
+    assert.equal(toGrams(3, "egg", 50), 150);
   });
 });
 
@@ -91,6 +96,98 @@ describe("gramsPerTablespoon", () => {
     assert.equal(honey, 21);
     assert.equal(sugar, 4);
     assert.notEqual(honey, sugar);
+  });
+});
+
+describe("parseCountUnit", () => {
+  test("derives a food's natural count unit (eggs)", () => {
+    const unit = parseCountUnit({
+      householdServingFullText: "1 EGG",
+      servingSize: 50,
+      servingSizeUnit: "g",
+    });
+    assert.deepEqual(unit, { label: "egg", gramsPerUnit: 50 });
+  });
+
+  test("lowercases the label", () => {
+    const unit = parseCountUnit({
+      householdServingFullText: "1 SLICE",
+      servingSize: 28,
+      servingSizeUnit: "g",
+    });
+    assert.equal(unit.label, "slice");
+  });
+
+  test("handles a count greater than 1", () => {
+    const unit = parseCountUnit({
+      householdServingFullText: "2 cookies",
+      servingSize: 46,
+      servingSizeUnit: "g",
+    });
+    assert.equal(unit.label, "cookies");
+    assert.equal(unit.gramsPerUnit, 23);
+  });
+
+  test("returns null for a recognized measure word (tbsp) rather than double-counting it as a count unit", () => {
+    assert.equal(
+      parseCountUnit({ householdServingFullText: "2 Tbsp", servingSize: 32, servingSizeUnit: "g" }),
+      null
+    );
+  });
+
+  test("returns null for a recognized measure word (cup)", () => {
+    assert.equal(
+      parseCountUnit({ householdServingFullText: "1/2 cup", servingSize: 60, servingSizeUnit: "g" }),
+      null
+    );
+  });
+
+  test("returns null when the serving size is a volume unit, not mass", () => {
+    assert.equal(
+      parseCountUnit({ householdServingFullText: "1 packet", servingSize: 15, servingSizeUnit: "ml" }),
+      null
+    );
+  });
+
+  test("returns null when there is no household serving text", () => {
+    assert.equal(parseCountUnit({ servingSize: 100, servingSizeUnit: "g" }), null);
+  });
+
+  test("different foods give different, correctly distinct per-unit weights", () => {
+    const smallEgg = parseCountUnit({ householdServingFullText: "1 EGG", servingSize: 44, servingSizeUnit: "g" });
+    const largeEgg = parseCountUnit({ householdServingFullText: "1 EGG", servingSize: 63, servingSizeUnit: "g" });
+    assert.equal(smallEgg.gramsPerUnit, 44);
+    assert.equal(largeEgg.gramsPerUnit, 63);
+    assert.notEqual(smallEgg.gramsPerUnit, largeEgg.gramsPerUnit);
+  });
+});
+
+describe("unitConversionFactor", () => {
+  const food = {
+    gramsPerTbsp: 16,
+    countUnit: { label: "egg", gramsPerUnit: 50 },
+  };
+
+  test("returns undefined for g and oz (no factor needed)", () => {
+    assert.equal(unitConversionFactor("g", food), undefined);
+    assert.equal(unitConversionFactor("oz", food), undefined);
+  });
+
+  test("resolves the tbsp factor", () => {
+    assert.equal(unitConversionFactor("tbsp", food), 16);
+  });
+
+  test("resolves a food's own count-unit factor by matching its label", () => {
+    assert.equal(unitConversionFactor("egg", food), 50);
+  });
+
+  test("returns undefined for a unit that doesn't match this food's count unit", () => {
+    assert.equal(unitConversionFactor("slice", food), undefined);
+  });
+
+  test("returns undefined when the food has no data at all", () => {
+    assert.equal(unitConversionFactor("tbsp", {}), undefined);
+    assert.equal(unitConversionFactor("egg", {}), undefined);
   });
 });
 

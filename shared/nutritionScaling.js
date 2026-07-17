@@ -1,18 +1,30 @@
 export const OZ_TO_G = 28.3495;
 
-// Unlike ounces, a tablespoon is a volume — grams-per-tablespoon depends on
-// the food's density (16g for peanut butter, 4g for granulated sugar, 21g
-// for honey), so there's no universal conversion factor. Callers must pass
-// the food-specific gramsPerTbsp (see gramsPerTablespoon below); if it's not
-// available for a food, "tbsp" should not be offered as a unit at all.
-export function toGrams(amount, unit, gramsPerTbsp) {
+// g/oz convert by a fixed factor; anything else (tbsp, or a food's own
+// discrete count unit like "egg"/"slice") is food-specific and must be
+// resolved by the caller via unitConversionFactor before calling this.
+export function toGrams(amount, unit, factor) {
+  if (unit === "g") return amount;
   if (unit === "oz") return amount * OZ_TO_G;
-  if (unit === "tbsp") return amount * (gramsPerTbsp || 0);
-  return amount;
+  return amount * (factor || 0);
 }
 
 const TBSP_RE = /^([\d.]+|\d+\/\d+)\s*(tbsp|tablespoons?)\b/i;
+const COUNT_RE = /^([\d.]+|\d+\/\d+)\s+([a-zA-Z][a-zA-Z .]*)$/;
 const MASS_SERVING_UNITS = new Set(["g", "grm", "gram", "grams"]);
+
+// Words that describe a volume/weight measure rather than a genuinely
+// discrete, countable thing — these are either handled elsewhere (tbsp) or
+// not something we convert, so they're excluded from becoming a "count"
+// unit (which is meant for things like "egg", "slice", "packet", "cookie").
+const MEASURE_WORDS = new Set([
+  "cup", "cups", "tbsp", "tbsps", "tablespoon", "tablespoons",
+  "tsp", "tsps", "teaspoon", "teaspoons",
+  "oz", "ozs", "onz", "ounce", "ounces",
+  "ml", "milliliter", "milliliters", "l", "liter", "liters",
+  "pint", "pints", "quart", "quarts", "gallon", "gallons",
+  "g", "gr", "grm", "gram", "grams", "lb", "lbs", "pound", "pounds",
+]);
 
 function parseServingAmount(str) {
   if (str.includes("/")) {
@@ -23,6 +35,14 @@ function parseServingAmount(str) {
   return Number.isFinite(n) ? n : null;
 }
 
+function isMassServing(food) {
+  return (
+    food.servingSize != null &&
+    food.servingSizeUnit != null &&
+    MASS_SERVING_UNITS.has(String(food.servingSizeUnit).toLowerCase())
+  );
+}
+
 // Derives grams-per-tablespoon for a specific USDA food from its own
 // household-serving text (e.g. "2 Tbsp") paired with its gram serving size
 // (e.g. 32g) — only when that serving size is actually given in grams, not
@@ -30,8 +50,7 @@ function parseServingAmount(str) {
 // Returns null when the food has no usable tablespoon-sized serving data.
 export function gramsPerTablespoon(food) {
   const text = food.householdServingFullText;
-  if (!text || food.servingSize == null || !food.servingSizeUnit) return null;
-  if (!MASS_SERVING_UNITS.has(String(food.servingSizeUnit).toLowerCase())) return null;
+  if (!text || !isMassServing(food)) return null;
 
   const match = TBSP_RE.exec(String(text).trim());
   if (!match) return null;
@@ -40,6 +59,40 @@ export function gramsPerTablespoon(food) {
   if (!tbspCount || tbspCount <= 0) return null;
 
   return food.servingSize / tbspCount;
+}
+
+// Derives a food's own natural counting unit (e.g. "1 EGG" -> {label:
+// "egg", gramsPerUnit: 50}) from its household-serving text, for foods
+// people naturally count rather than weigh — eggs, slices, cookies,
+// packets. Excludes anything that's actually a volume/weight measure word
+// (already handled by tbsp, or not something we convert) and anything not
+// backed by a gram-based serving size, same rules as gramsPerTablespoon.
+export function parseCountUnit(food) {
+  const text = food.householdServingFullText;
+  if (!text || !isMassServing(food)) return null;
+
+  const match = COUNT_RE.exec(String(text).trim());
+  if (!match) return null;
+
+  const count = parseServingAmount(match[1]);
+  if (!count || count <= 0) return null;
+
+  const label = match[2].trim().toLowerCase();
+  if (!label || MEASURE_WORDS.has(label)) return null;
+
+  return { label, gramsPerUnit: food.servingSize / count };
+}
+
+// Resolves the food-specific conversion factor for whatever unit is
+// currently selected, so callers don't need to know the difference between
+// "tbsp" and a food's own count unit (e.g. "egg") — both are just a label
+// paired with a gramsPerUnit on the food object. Returns undefined for g/oz
+// (no factor needed) or when the unit doesn't match anything on this food.
+export function unitConversionFactor(unit, food) {
+  if (!food || unit === "g" || unit === "oz") return undefined;
+  if (unit === "tbsp") return food.gramsPerTbsp ?? undefined;
+  if (food.countUnit && unit === food.countUnit.label) return food.countUnit.gramsPerUnit;
+  return undefined;
 }
 
 export function defaultQuantity(food) {

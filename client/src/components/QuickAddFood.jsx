@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { todayISO, inferMealFromTime } from "../dates";
-import { OZ_TO_G, defaultQuantity, toGrams, scaledMacros } from "../../../shared/nutritionScaling.js";
+import {
+  OZ_TO_G,
+  defaultQuantity,
+  toGrams,
+  scaledMacros,
+  unitConversionFactor,
+} from "../../../shared/nutritionScaling.js";
 
 const RECENT_LIMIT = 8;
 
@@ -111,11 +117,11 @@ export default function QuickAddFood({ onAdded }) {
 
   function handleUnitChange(newUnit) {
     if (newUnit === unit) return;
-    const grams = toGrams(amount, unit, selected?.gramsPerTbsp);
+    const grams = toGrams(amount, unit, unitConversionFactor(unit, selected));
     let converted;
     if (newUnit === "oz") converted = grams / OZ_TO_G;
-    else if (newUnit === "tbsp") converted = grams / (selected?.gramsPerTbsp || 1);
-    else converted = grams;
+    else if (newUnit === "g") converted = grams;
+    else converted = grams / (unitConversionFactor(newUnit, selected) || 1);
     setAmount(Math.round(converted * 10) / 10);
     setUnit(newUnit);
   }
@@ -124,7 +130,7 @@ export default function QuickAddFood({ onAdded }) {
     setSaving(true);
     setError(null);
     try {
-      const grams = toGrams(amount, unit, selected?.gramsPerTbsp);
+      const grams = toGrams(amount, unit, unitConversionFactor(unit, selected));
       const macros = scaledMacros(selected, grams);
       const qtyLabel = `${amount}${unit}`;
       await api.createFoodEntry({
@@ -180,7 +186,7 @@ export default function QuickAddFood({ onAdded }) {
   }
 
   const preview = selected
-    ? scaledMacros(selected, toGrams(amount, unit, selected.gramsPerTbsp))
+    ? scaledMacros(selected, toGrams(amount, unit, unitConversionFactor(unit, selected)))
     : null;
 
   return (
@@ -374,6 +380,20 @@ export default function QuickAddFood({ onAdded }) {
                       title={`${selected.gramsPerTbsp}g per tablespoon for this food`}
                     >
                       tbsp
+                    </button>
+                  ) : null}
+                  {selected.countUnit ? (
+                    <button
+                      type="button"
+                      className={
+                        unit === selected.countUnit.label
+                          ? "unit-toggle__option unit-toggle__option--active"
+                          : "unit-toggle__option"
+                      }
+                      onClick={() => handleUnitChange(selected.countUnit.label)}
+                      title={`${selected.countUnit.gramsPerUnit}g per ${selected.countUnit.label} for this food`}
+                    >
+                      {selected.countUnit.label}
                     </button>
                   ) : null}
                 </div>

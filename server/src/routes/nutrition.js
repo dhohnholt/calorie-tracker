@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { gramsPerTablespoon } from "../../../shared/nutritionScaling.js";
+import { gramsPerTablespoon, parseCountUnit } from "../../../shared/nutritionScaling.js";
 
 const router = Router();
 
@@ -34,6 +34,10 @@ function simplifyFood(food) {
     // accurate, food-specific grams-per-tablespoon (not a generic guess) —
     // null means "tbsp" shouldn't be offered as a unit for this food.
     gramsPerTbsp: gramsPerTablespoon(food),
+    // The food's own natural counting unit (e.g. "1 EGG" -> {label: "egg",
+    // gramsPerUnit: 50}), for foods people count rather than weigh. null
+    // means this food has no reliable discrete-unit serving data.
+    countUnit: parseCountUnit(food),
   };
 }
 
@@ -63,6 +67,12 @@ export async function searchUSDAFoods(query, pageSize = 10) {
 router.get("/search", async (req, res) => {
   const { q } = req.query;
   if (!q) return res.status(400).json({ error: "q query param is required" });
+
+  // Results depend on both live USDA data and our own transformation logic
+  // (nutrient extraction, unit derivation) — a browser silently reusing a
+  // cached response for the same query string could serve stale data
+  // indefinitely once either changes.
+  res.set("Cache-Control", "no-store");
 
   try {
     const foods = await searchUSDAFoods(q);
