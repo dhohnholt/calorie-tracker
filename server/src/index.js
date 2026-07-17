@@ -29,5 +29,11 @@ app.use("/api/weekly-plan", weeklyPlanRouter);
 
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`Server listening on http://localhost:${PORT}`));
+export default app;
+
+// Only start listening when run directly (`node src/index.js`), not when
+// imported by tests.
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const PORT = process.env.PORT || 3001;
+  app.listen(PORT, () => console.log(`Server listening on http://localhost:${PORT}`));
+}

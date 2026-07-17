@@ -27,6 +27,11 @@ function getYouTubeEmbedUrl(url) {
   return match ? `https://www.youtube.com/embed/${match[1]}` : null;
 }
 
+function formatUsd(value) {
+  if (!value) return "$0.00";
+  return value < 0.01 ? `$${value.toFixed(4)}` : `$${value.toFixed(2)}`;
+}
+
 const FOOD_CATEGORIES = [
   "Protein",
   "Dairy & Eggs",
@@ -91,6 +96,7 @@ export default function MealPlanPage({ proteinGoal, todayProtein }) {
   const [aiSaveDay, setAiSaveDay] = useState("monday");
   const [aiSavedMsg, setAiSavedMsg] = useState(null);
   const [guidance, setGuidance] = useState("");
+  const [aiSpend, setAiSpend] = useState(null);
 
   const [weeklyPlan, setWeeklyPlan] = useState({});
   const [showShoppingList, setShowShoppingList] = useState(false);
@@ -113,7 +119,18 @@ export default function MealPlanPage({ proteinGoal, todayProtein }) {
     api.getRecipes().then(setRecipes).catch(() => {});
     api.getFavoriteFoods().then(setFavoriteFoods).catch(() => {});
     loadWeeklyPlan();
+    loadAiSpend();
   }, []);
+
+  async function loadAiSpend() {
+    const settings = await api.getSettings().catch(() => null);
+    if (!settings) return;
+    setAiSpend({
+      totalCostUsd: parseFloat(settings.ai_estimated_spend_usd) || 0,
+      totalInputTokens: parseFloat(settings.ai_total_input_tokens) || 0,
+      totalOutputTokens: parseFloat(settings.ai_total_output_tokens) || 0,
+    });
+  }
 
   async function loadWeeklyPlan() {
     const rows = await api.getWeeklyPlan().catch(() => []);
@@ -207,6 +224,14 @@ export default function MealPlanPage({ proteinGoal, todayProtein }) {
         guidance
       );
       setAiResult(result);
+      if (result.usage) {
+        setAiSpend({
+          totalCostUsd: result.usage.totalCostUsd,
+          totalInputTokens: result.usage.totalInputTokens,
+          totalOutputTokens: result.usage.totalOutputTokens,
+          lastCallCostUsd: result.usage.costUsd,
+        });
+      }
     } catch (err) {
       setAiError(err.message);
     } finally {
@@ -611,6 +636,16 @@ export default function MealPlanPage({ proteinGoal, todayProtein }) {
           value={guidance}
           onChange={(e) => setGuidance(e.target.value)}
         />
+
+        {aiSpend && (
+          <div className="meal-plan__ai-spend">
+            Estimated AI spend: {formatUsd(aiSpend.totalCostUsd)} total
+            {aiSpend.lastCallCostUsd != null && (
+              <> · {formatUsd(aiSpend.lastCallCostUsd)} this generation</>
+            )}
+            {" · Haiku 4.5 pricing, not your actual account balance"}
+          </div>
+        )}
 
         {aiError && <div className="quick-add__error">{aiError}</div>}
 

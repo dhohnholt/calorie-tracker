@@ -3,7 +3,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dbPath = path.join(__dirname, "..", "data", "calorie-tracker.db");
+// DB_PATH lets tests point at a throwaway database instead of the real one.
+const dbPath = process.env.DB_PATH || path.join(__dirname, "..", "data", "calorie-tracker.db");
 
 export const db = new Database(dbPath);
 db.pragma("journal_mode = WAL");
@@ -95,6 +96,11 @@ if (!recipesColumns.some((c) => c.name === "rating")) {
   db.exec("ALTER TABLE recipes ADD COLUMN rating INTEGER NOT NULL DEFAULT 0");
 }
 
+const foodEntriesColumns = db.prepare("PRAGMA table_info(food_entries)").all();
+if (!foodEntriesColumns.some((c) => c.name === "notes")) {
+  db.exec("ALTER TABLE food_entries ADD COLUMN notes TEXT");
+}
+
 function seedSetting(key, value) {
   db.prepare(
     `INSERT INTO settings (key, value) VALUES (?, ?)
@@ -105,13 +111,3 @@ function seedSetting(key, value) {
 seedSetting("calorie_goal", "2000");
 seedSetting("goal_weight", "195");
 seedSetting("weight_unit", "lbs");
-
-const today = new Date().toISOString().slice(0, 10);
-const existingWeight = db
-  .prepare("SELECT COUNT(*) AS n FROM weight_entries")
-  .get();
-if (existingWeight.n === 0) {
-  db.prepare(
-    `INSERT INTO weight_entries (date, weight, unit, logged_at) VALUES (?, ?, ?, ?)`
-  ).run(today, 235, "lbs", new Date().toISOString());
-}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { todayISO, inferMealFromTime } from "../dates";
+import { OZ_TO_G, defaultQuantity, toGrams, scaledMacros } from "../../../shared/nutritionScaling.js";
 
 const RECENT_LIMIT = 8;
 
@@ -19,34 +20,17 @@ function dedupeByDescription(entries) {
 
 const MEALS = ["breakfast", "lunch", "dinner", "snack"];
 const MEAL_LABELS = { breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner", snack: "Snack" };
-const OZ_TO_G = 28.3495;
-
-function defaultQuantity(food) {
-  if (food.servingSize && /^g|gram/i.test(food.servingSizeUnit || "")) {
-    return Math.round(food.servingSize);
-  }
-  return 100;
-}
-
-function toGrams(amount, unit) {
-  return unit === "oz" ? amount * OZ_TO_G : amount;
-}
-
-function scaledMacros(food, grams) {
-  const factor = grams / 100;
-  const per100g = food.per100g || {};
-  return {
-    calories: Math.round((per100g.calories || 0) * factor),
-    protein_g: Math.round((per100g.protein_g || 0) * factor * 10) / 10,
-    carbs_g: Math.round((per100g.carbs_g || 0) * factor * 10) / 10,
-    fat_g: Math.round((per100g.fat_g || 0) * factor * 10) / 10,
-    fiber_g: Math.round((per100g.fiber_g || 0) * factor * 10) / 10,
-    sugar_g: Math.round((per100g.sugar_g || 0) * factor * 10) / 10,
-    sodium_mg: Math.round((per100g.sodium_mg || 0) * factor),
-  };
-}
 
 export default function QuickAddFood({ onAdded }) {
+  const [mode, setMode] = useState("search");
+
+  const [manualTitle, setManualTitle] = useState("");
+  const [manualNotes, setManualNotes] = useState("");
+  const [manualCalories, setManualCalories] = useState("");
+  const [manualProtein, setManualProtein] = useState("");
+  const [manualSaving, setManualSaving] = useState(false);
+  const [manualError, setManualError] = useState(null);
+
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState(null);
@@ -159,6 +143,39 @@ export default function QuickAddFood({ onAdded }) {
     }
   }
 
+  async function handleManualAdd() {
+    setManualError(null);
+    if (!manualTitle.trim()) {
+      setManualError("Enter a title first");
+      return;
+    }
+    if (!manualCalories || Number(manualCalories) <= 0) {
+      setManualError("Enter a calorie count first");
+      return;
+    }
+    setManualSaving(true);
+    try {
+      await api.createFoodEntry({
+        date,
+        meal,
+        description: manualTitle.trim(),
+        notes: manualNotes.trim() || null,
+        calories: Number(manualCalories) || 0,
+        protein_g: Number(manualProtein) || 0,
+      });
+      setManualTitle("");
+      setManualNotes("");
+      setManualCalories("");
+      setManualProtein("");
+      onAdded(date);
+      loadRecent();
+    } catch (err) {
+      setManualError(err.message);
+    } finally {
+      setManualSaving(false);
+    }
+  }
+
   const preview = selected ? scaledMacros(selected, toGrams(amount, unit)) : null;
 
   return (
@@ -167,6 +184,96 @@ export default function QuickAddFood({ onAdded }) {
         <h2>Log food</h2>
       </div>
 
+      <div className="unit-toggle quick-add__mode-toggle">
+        <button
+          type="button"
+          className={mode === "search" ? "unit-toggle__option unit-toggle__option--active" : "unit-toggle__option"}
+          onClick={() => setMode("search")}
+        >
+          Search
+        </button>
+        <button
+          type="button"
+          className={mode === "manual" ? "unit-toggle__option unit-toggle__option--active" : "unit-toggle__option"}
+          onClick={() => setMode("manual")}
+        >
+          Manual entry
+        </button>
+      </div>
+
+      {mode === "manual" && (
+        <div className="quick-add__manual">
+          <input
+            type="text"
+            placeholder="Title (e.g. Leftover pasta)"
+            value={manualTitle}
+            onChange={(e) => setManualTitle(e.target.value)}
+            className="quick-add__manual-title"
+          />
+          <textarea
+            placeholder="Description (optional)"
+            value={manualNotes}
+            onChange={(e) => setManualNotes(e.target.value)}
+            className="quick-add__manual-notes"
+            rows={2}
+          />
+          <div className="quick-add__fields">
+            <label>
+              Calories
+              <input
+                type="number"
+                min="0"
+                value={manualCalories}
+                onChange={(e) => setManualCalories(e.target.value)}
+              />
+            </label>
+            <label>
+              Protein (g, optional)
+              <input
+                type="number"
+                min="0"
+                value={manualProtein}
+                onChange={(e) => setManualProtein(e.target.value)}
+              />
+            </label>
+            <label>
+              Meal
+              <select value={meal} onChange={(e) => setMeal(e.target.value)}>
+                {MEALS.map((m) => (
+                  <option key={m} value={m}>
+                    {MEAL_LABELS[m]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Date
+              <input
+                type="date"
+                value={date}
+                max={todayISO()}
+                onChange={(e) => setDate(e.target.value)}
+              />
+            </label>
+          </div>
+
+          {manualError && <div className="quick-add__error">{manualError}</div>}
+
+          <div className="modal-actions">
+            <button
+              type="button"
+              className="button-primary"
+              onClick={handleManualAdd}
+              disabled={manualSaving}
+            >
+              {manualSaving ? "Adding…" : "Add to log"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {mode === "search" && (
+      <>
       <form className="quick-add__search" onSubmit={handleSearch}>
         <input
           type="text"
@@ -298,6 +405,8 @@ export default function QuickAddFood({ onAdded }) {
             </button>
           </div>
         </div>
+      )}
+      </>
       )}
     </div>
   );

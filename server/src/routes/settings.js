@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { db } from "../db.js";
+import { validateSettingsUpdate } from "../../../shared/validation.js";
 
 const router = Router();
 
@@ -10,6 +11,11 @@ router.get("/", (req, res) => {
 });
 
 router.put("/", (req, res) => {
+  const errors = validateSettingsUpdate(req.body);
+  if (errors.length > 0) {
+    return res.status(400).json({ error: errors.join("; ") });
+  }
+
   const upsert = db.prepare(
     `INSERT INTO settings (key, value) VALUES (?, ?)
      ON CONFLICT(key) DO UPDATE SET value = excluded.value`

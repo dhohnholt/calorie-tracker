@@ -1,9 +1,8 @@
 import { Router } from "express";
 import { db } from "../db.js";
+import { validateFoodEntry } from "../../../shared/validation.js";
 
 const router = Router();
-
-const MEALS = new Set(["breakfast", "lunch", "dinner", "snack"]);
 
 router.get("/", (req, res) => {
   const { date, start, end } = req.query;
@@ -29,10 +28,16 @@ router.get("/", (req, res) => {
 });
 
 router.post("/", (req, res) => {
+  const errors = validateFoodEntry(req.body);
+  if (errors.length > 0) {
+    return res.status(400).json({ error: errors.join("; ") });
+  }
+
   const {
     date,
     meal,
     description,
+    notes = null,
     calories,
     protein_g = 0,
     carbs_g = 0,
@@ -43,26 +48,18 @@ router.post("/", (req, res) => {
     items = [],
   } = req.body;
 
-  if (!date || !meal || !description || calories == null) {
-    return res
-      .status(400)
-      .json({ error: "date, meal, description, and calories are required" });
-  }
-  if (!MEALS.has(meal)) {
-    return res.status(400).json({ error: `meal must be one of ${[...MEALS].join(", ")}` });
-  }
-
   const logged_at = new Date().toISOString();
   const result = db
     .prepare(
       `INSERT INTO food_entries
-        (date, meal, description, calories, protein_g, carbs_g, fat_g, fiber_g, sugar_g, sodium_mg, items_json, logged_at)
-       VALUES (@date, @meal, @description, @calories, @protein_g, @carbs_g, @fat_g, @fiber_g, @sugar_g, @sodium_mg, @items_json, @logged_at)`
+        (date, meal, description, notes, calories, protein_g, carbs_g, fat_g, fiber_g, sugar_g, sodium_mg, items_json, logged_at)
+       VALUES (@date, @meal, @description, @notes, @calories, @protein_g, @carbs_g, @fat_g, @fiber_g, @sugar_g, @sodium_mg, @items_json, @logged_at)`
     )
     .run({
       date,
       meal,
       description,
+      notes,
       calories,
       protein_g,
       carbs_g,
@@ -85,9 +82,14 @@ router.put("/:id", (req, res) => {
   const merged = { ...existing, ...req.body };
   if (req.body.items) merged.items_json = JSON.stringify(req.body.items);
 
+  const errors = validateFoodEntry(merged);
+  if (errors.length > 0) {
+    return res.status(400).json({ error: errors.join("; ") });
+  }
+
   db.prepare(
     `UPDATE food_entries SET
-      date = @date, meal = @meal, description = @description, calories = @calories,
+      date = @date, meal = @meal, description = @description, notes = @notes, calories = @calories,
       protein_g = @protein_g, carbs_g = @carbs_g, fat_g = @fat_g,
       fiber_g = @fiber_g, sugar_g = @sugar_g, sodium_mg = @sodium_mg,
       items_json = @items_json

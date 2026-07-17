@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { db } from "../db.js";
+import { validateWeightEntry } from "../../../shared/validation.js";
 
 const router = Router();
 
@@ -17,11 +18,12 @@ router.get("/", (req, res) => {
 });
 
 router.post("/", (req, res) => {
-  const { date, weight, unit = "lbs" } = req.body;
-  if (!date || weight == null) {
-    return res.status(400).json({ error: "date and weight are required" });
+  const errors = validateWeightEntry(req.body);
+  if (errors.length > 0) {
+    return res.status(400).json({ error: errors.join("; ") });
   }
 
+  const { date, weight, unit = "lbs" } = req.body;
   const logged_at = new Date().toISOString();
   db.prepare(
     `INSERT INTO weight_entries (date, weight, unit, logged_at) VALUES (?, ?, ?, ?)

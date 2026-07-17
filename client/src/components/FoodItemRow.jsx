@@ -12,6 +12,7 @@ export default function FoodItemRow({ entry, onUpdate, onDelete }) {
   function startEdit() {
     setForm({
       description: entry.description,
+      notes: entry.notes || "",
       calories: entry.calories,
       protein_g: entry.protein_g,
       carbs_g: entry.carbs_g,
@@ -31,6 +32,7 @@ export default function FoodItemRow({ entry, onUpdate, onDelete }) {
     try {
       await onUpdate(entry.id, {
         ...form,
+        notes: form.notes.trim() || null,
         calories: Number(form.calories) || 0,
         protein_g: Number(form.protein_g) || 0,
         carbs_g: Number(form.carbs_g) || 0,
@@ -50,6 +52,13 @@ export default function FoodItemRow({ entry, onUpdate, onDelete }) {
           type="text"
           value={form.description}
           onChange={(e) => updateField("description", e.target.value)}
+        />
+        <textarea
+          className="food-item__edit-notes"
+          placeholder="Description (optional)"
+          value={form.notes}
+          onChange={(e) => updateField("notes", e.target.value)}
+          rows={2}
         />
         <div className="food-item__edit-row">
           <label>
@@ -120,6 +129,7 @@ export default function FoodItemRow({ entry, onUpdate, onDelete }) {
     <li className="food-item">
       <div className="food-item__main">
         <div className="food-item__desc">{entry.description}</div>
+        {entry.notes && <div className="food-item__notes">{entry.notes}</div>}
         <div className="food-item__macros">
           {Math.round(entry.protein_g)}g protein · {Math.round(entry.carbs_g)}g carbs ·{" "}
           {Math.round(entry.fat_g)}g fat

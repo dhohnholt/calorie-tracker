@@ -1,6 +1,37 @@
 import { Router } from "express";
+import { db } from "../db.js";
 
 const router = Router();
+
+// Claude Haiku 4.5 pricing: $1.00 / 1M input tokens, $5.00 / 1M output tokens
+const INPUT_COST_PER_TOKEN = 1.0 / 1_000_000;
+const OUTPUT_COST_PER_TOKEN = 5.0 / 1_000_000;
+
+function getSetting(key) {
+  const row = db.prepare("SELECT value FROM settings WHERE key = ?").get(key);
+  return row ? parseFloat(row.value) || 0 : 0;
+}
+
+function setSetting(key, value) {
+  db.prepare(
+    `INSERT INTO settings (key, value) VALUES (?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+  ).run(key, String(value));
+}
+
+function recordAiUsage(inputTokens, outputTokens) {
+  const costUsd = inputTokens * INPUT_COST_PER_TOKEN + outputTokens * OUTPUT_COST_PER_TOKEN;
+
+  const totalInputTokens = getSetting("ai_total_input_tokens") + inputTokens;
+  const totalOutputTokens = getSetting("ai_total_output_tokens") + outputTokens;
+  const totalCostUsd = getSetting("ai_estimated_spend_usd") + costUsd;
+
+  setSetting("ai_total_input_tokens", totalInputTokens);
+  setSetting("ai_total_output_tokens", totalOutputTokens);
+  setSetting("ai_estimated_spend_usd", totalCostUsd);
+
+  return { costUsd, totalCostUsd, totalInputTokens, totalOutputTokens };
+}
 
 router.post("/ai", async (req, res) => {
   const { favoriteFoods = [], targetProteinG, planScope, recipes = [], guidance = "" } = req.body;
@@ -64,6 +95,11 @@ ${guidance.trim() ? `User's requests: ${guidance.trim()}` : ""}`;
     }
 
     const data = await resp.json();
+
+    const usage = data.usage
+      ? recordAiUsage(data.usage.input_tokens || 0, data.usage.output_tokens || 0)
+      : null;
+
     const rawText = data.content?.[0]?.text || "";
     const cleaned = rawText.replace(/^```json\s*|\s*```$/g, "").trim();
 
@@ -80,7 +116,7 @@ ${guidance.trim() ? `User's requests: ${guidance.trim()}` : ""}`;
       });
     }
 
-    res.json(plan);
+    res.json({ ...plan, usage });
   } catch (err) {
     res.status(502).json({ error: "Failed to reach Anthropic API", detail: err.message });
   }

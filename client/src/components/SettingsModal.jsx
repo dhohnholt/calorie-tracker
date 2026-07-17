@@ -81,6 +81,15 @@ export default function SettingsModal({ settings, onSave, onClose }) {
               <option value="kg">kg</option>
             </select>
           </label>
+          <a
+            href="https://console.anthropic.com/settings/billing"
+            target="_blank"
+            rel="noreferrer"
+            className="settings-form__billing-link"
+          >
+            Check AI usage &amp; billing (Anthropic Console) ↗
+          </a>
+
           <div className="modal-actions">
             <button type="button" className="button-secondary" onClick={onClose}>
               Cancel
