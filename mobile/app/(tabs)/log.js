@@ -13,7 +13,7 @@ import {
   MEAL_TYPES,
   isValidISODate,
 } from "calorie-tracker-shared/validation.js";
-import { defaultQuantity, toGrams, scaledMacros } from "calorie-tracker-shared/nutritionScaling.js";
+import { OZ_TO_G, defaultQuantity, toGrams, scaledMacros } from "calorie-tracker-shared/nutritionScaling.js";
 import { api } from "../../src/api";
 import { useTheme, radii } from "../../src/theme";
 import Screen from "../../src/components/Screen";
@@ -88,6 +88,17 @@ export default function LogScreen() {
     setSavedMessage(null);
   }
 
+  function handleUnitChange(newUnit) {
+    if (newUnit === unit) return;
+    const grams = toGrams(Number(amount) || 0, unit, selected?.gramsPerTbsp);
+    let converted;
+    if (newUnit === "oz") converted = grams / OZ_TO_G;
+    else if (newUnit === "tbsp") converted = grams / (selected?.gramsPerTbsp || 1);
+    else converted = grams;
+    setAmount(String(Math.round(converted * 10) / 10));
+    setUnit(newUnit);
+  }
+
   async function handleSave() {
     if (!selected) return;
     if (!isValidISODate(date)) {
@@ -97,7 +108,7 @@ export default function LogScreen() {
     setSaving(true);
     setError(null);
     try {
-      const grams = toGrams(Number(amount) || 0, unit);
+      const grams = toGrams(Number(amount) || 0, unit, selected?.gramsPerTbsp);
       const macros = scaledMacros(selected, grams);
       const qtyLabel = `${amount}${unit}`;
       await api.createFoodEntry({
@@ -143,7 +154,9 @@ export default function LogScreen() {
     }
   }
 
-  const preview = selected ? scaledMacros(selected, toGrams(Number(amount) || 0, unit)) : null;
+  const preview = selected
+    ? scaledMacros(selected, toGrams(Number(amount) || 0, unit, selected.gramsPerTbsp))
+    : null;
 
   return (
     <Screen>
@@ -192,10 +205,10 @@ export default function LogScreen() {
                 onChangeText={(t) => setAmount(t.replace(/[^0-9.]/g, ""))}
               />
               <View style={styles.unitToggle}>
-                {["g", "oz"].map((u) => (
+                {["g", "oz", ...(selected.gramsPerTbsp ? ["tbsp"] : [])].map((u) => (
                   <Pressable
                     key={u}
-                    onPress={() => setUnit(u)}
+                    onPress={() => handleUnitChange(u)}
                     style={[
                       styles.unitOption,
                       {

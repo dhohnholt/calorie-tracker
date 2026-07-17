@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { gramsPerTablespoon } from "../../../shared/nutritionScaling.js";
 
 const router = Router();
 
@@ -29,6 +30,10 @@ function simplifyFood(food) {
     servingSize: food.servingSize,
     servingSizeUnit: food.servingSizeUnit,
     per100g,
+    // Only present when USDA's own household-serving data lets us derive an
+    // accurate, food-specific grams-per-tablespoon (not a generic guess) —
+    // null means "tbsp" shouldn't be offered as a unit for this food.
+    gramsPerTbsp: gramsPerTablespoon(food),
   };
 }
 

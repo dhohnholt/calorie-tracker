@@ -111,8 +111,11 @@ export default function QuickAddFood({ onAdded }) {
 
   function handleUnitChange(newUnit) {
     if (newUnit === unit) return;
-    const grams = toGrams(amount, unit);
-    const converted = newUnit === "oz" ? grams / OZ_TO_G : grams;
+    const grams = toGrams(amount, unit, selected?.gramsPerTbsp);
+    let converted;
+    if (newUnit === "oz") converted = grams / OZ_TO_G;
+    else if (newUnit === "tbsp") converted = grams / (selected?.gramsPerTbsp || 1);
+    else converted = grams;
     setAmount(Math.round(converted * 10) / 10);
     setUnit(newUnit);
   }
@@ -121,7 +124,7 @@ export default function QuickAddFood({ onAdded }) {
     setSaving(true);
     setError(null);
     try {
-      const grams = toGrams(amount, unit);
+      const grams = toGrams(amount, unit, selected?.gramsPerTbsp);
       const macros = scaledMacros(selected, grams);
       const qtyLabel = `${amount}${unit}`;
       await api.createFoodEntry({
@@ -176,7 +179,9 @@ export default function QuickAddFood({ onAdded }) {
     }
   }
 
-  const preview = selected ? scaledMacros(selected, toGrams(amount, unit)) : null;
+  const preview = selected
+    ? scaledMacros(selected, toGrams(amount, unit, selected.gramsPerTbsp))
+    : null;
 
   return (
     <div className="card quick-add">
@@ -340,7 +345,7 @@ export default function QuickAddFood({ onAdded }) {
                 <input
                   type="number"
                   min="0"
-                  step={unit === "oz" ? "0.1" : "1"}
+                  step={unit === "g" ? "1" : "0.1"}
                   value={amount}
                   onChange={(e) => setAmount(Number(e.target.value) || 0)}
                 />
@@ -359,6 +364,18 @@ export default function QuickAddFood({ onAdded }) {
                   >
                     oz
                   </button>
+                  {selected.gramsPerTbsp ? (
+                    <button
+                      type="button"
+                      className={
+                        unit === "tbsp" ? "unit-toggle__option unit-toggle__option--active" : "unit-toggle__option"
+                      }
+                      onClick={() => handleUnitChange("tbsp")}
+                      title={`${selected.gramsPerTbsp}g per tablespoon for this food`}
+                    >
+                      tbsp
+                    </button>
+                  ) : null}
                 </div>
               </div>
             </label>

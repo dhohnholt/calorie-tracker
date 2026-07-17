@@ -1,6 +1,12 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { toGrams, defaultQuantity, scaledMacros, OZ_TO_G } from "../nutritionScaling.js";
+import {
+  toGrams,
+  defaultQuantity,
+  scaledMacros,
+  gramsPerTablespoon,
+  OZ_TO_G,
+} from "../nutritionScaling.js";
 
 describe("toGrams", () => {
   test("passes grams through unchanged", () => {
@@ -8,6 +14,83 @@ describe("toGrams", () => {
   });
   test("converts ounces to grams", () => {
     assert.ok(Math.abs(toGrams(1, "oz") - OZ_TO_G) < 1e-9);
+  });
+  test("converts tablespoons to grams using the food-specific factor", () => {
+    assert.equal(toGrams(2, "tbsp", 16), 32);
+  });
+  test("treats a missing tablespoon factor as 0g rather than throwing", () => {
+    assert.equal(toGrams(2, "tbsp", undefined), 0);
+  });
+});
+
+describe("gramsPerTablespoon", () => {
+  test("derives grams/tbsp from a gram-based household serving (peanut butter)", () => {
+    const grams = gramsPerTablespoon({
+      householdServingFullText: "2 Tbsp",
+      servingSize: 32,
+      servingSizeUnit: "g",
+    });
+    assert.equal(grams, 16);
+  });
+
+  test("is case-insensitive and accepts the full word 'tablespoon'", () => {
+    const grams = gramsPerTablespoon({
+      householdServingFullText: "1 TABLESPOON",
+      servingSize: 15,
+      servingSizeUnit: "g",
+    });
+    assert.equal(grams, 15);
+  });
+
+  test("handles fractional tablespoon counts", () => {
+    const grams = gramsPerTablespoon({
+      householdServingFullText: "1/2 tbsp",
+      servingSize: 7,
+      servingSizeUnit: "g",
+    });
+    assert.equal(grams, 14);
+  });
+
+  test("returns null when the household serving isn't in tablespoons (e.g. cups)", () => {
+    const grams = gramsPerTablespoon({
+      householdServingFullText: "1/2 cup",
+      servingSize: 60,
+      servingSizeUnit: "g",
+    });
+    assert.equal(grams, null);
+  });
+
+  test("returns null when the serving size is a volume unit, not mass (would give mL, not grams)", () => {
+    const grams = gramsPerTablespoon({
+      householdServingFullText: "1 Tbsp",
+      servingSize: 15,
+      servingSizeUnit: "ml",
+    });
+    assert.equal(grams, null);
+  });
+
+  test("returns null when there is no household serving text at all", () => {
+    assert.equal(gramsPerTablespoon({ servingSize: 100, servingSizeUnit: "g" }), null);
+  });
+
+  test("returns null for a food with no serving size data", () => {
+    assert.equal(gramsPerTablespoon({}), null);
+  });
+
+  test("different foods give different, correctly distinct densities", () => {
+    const honey = gramsPerTablespoon({
+      householdServingFullText: "1 Tbsp",
+      servingSize: 21,
+      servingSizeUnit: "g",
+    });
+    const sugar = gramsPerTablespoon({
+      householdServingFullText: "1 Tbsp",
+      servingSize: 4,
+      servingSizeUnit: "g",
+    });
+    assert.equal(honey, 21);
+    assert.equal(sugar, 4);
+    assert.notEqual(honey, sugar);
   });
 });
 
