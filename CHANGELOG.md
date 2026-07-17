@@ -70,3 +70,6 @@ Notable changes to the calorie tracker, newest first. Dates reflect when the wor
 
 ### Fixed (mobile)
 - The generated `mobile/ios/CalorieTracker/Info.plist` hardcoded `CFBundleVersion` as the literal string `"1"` instead of referencing the `$(CURRENT_PROJECT_VERSION)` Xcode build setting — bumping the build number in Xcode's project settings silently had no effect on the actual uploaded build number. Fixed to reference the variable.
+
+### Added
+- **`railway.json`**: config for deploying `server/` to Railway so the mobile app (and eventually the web client) can reach it without depending on the developer's Mac being on and on the same Wi-Fi network. Points Railway's build/start commands at the `server/` subdirectory of this monorepo and health-checks the existing `/api/health` route. The server needed no code changes — `DB_PATH` (added earlier for test isolation) already supports pointing SQLite at a persistent volume instead of the container's ephemeral filesystem, which is required so data survives redeploys.
