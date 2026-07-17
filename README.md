@@ -106,10 +106,32 @@ npm test --prefix server   # route-level validation & upsert integration tests
 Both use Node's built-in test runner (`node --test`) — no extra test
 framework dependency.
 
-## Deploying later
+## Server deployment (Railway)
+
+`server/` is deployed to Railway so the mobile app can reach it without your
+Mac needing to be on and on the same Wi-Fi network. Config lives in
+`railway.json` at the repo root, which points Railway's build/start commands
+at the `server/` subdirectory of this monorepo (Root Directory left at the
+repo default so `railway.json` is found).
+
+Required Railway setup (one-time, done via their dashboard, not in this repo):
+
+- A **Volume** mounted at `/data`, so the SQLite file survives redeploys
+  instead of living on the container's throwaway filesystem.
+- Environment variables: `USDA_API_KEY`, `ANTHROPIC_API_KEY` (same values as
+  local `server/.env`), and `DB_PATH=/data/calorie-tracker.db` (points the
+  database at the volume). `PORT` is injected automatically by Railway.
+
+The deployed database is separate from your local one — it starts empty
+(just the default seeded settings) and does not sync with the data on your
+Mac. There's no data migration between the two right now.
+
+The mobile app's `EXPO_PUBLIC_API_URL` points at the deployed server (see
+`mobile/.env`); the web client still points at `localhost:3001` for local
+dev (`client/vite.config.js`'s dev proxy) and hasn't been switched over.
+
+## Deploying further later
 
 The client builds to static files (`npm run build --prefix client`) that the
-Express server could serve directly, so this can move to a single deployable
-service (Railway, Fly.io, a VPS, etc.) with minimal changes when you're ready.
-The mobile app is not deployed anywhere yet — it runs via Expo Go / the iOS
-Simulator against your local server.
+Express server could serve directly, so the web app could move onto the same
+Railway service (or its own) with minimal changes when you're ready.
