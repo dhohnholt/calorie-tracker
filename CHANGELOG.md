@@ -1,0 +1,46 @@
+# Changelog
+
+Notable changes to the calorie tracker, newest first. Dates reflect when the work was done, not version tags (this is a personal local project without formal releases).
+
+## 2026-07-16
+
+### Added
+- **Core app**: Node/Express + SQLite backend, React (Vite) dashboard, `.env`-configured USDA FoodData Central integration.
+- **Food logging**: log via chat (Claude looks up nutrition and inserts directly) or via an in-app "Log food" search that hits USDA, lets you pick a match, set quantity in grams or ounces, meal, and date, with a live macro preview before saving.
+- **Food entry editing**: inline edit (description, calories, macros, meal, date) and delete on every logged item.
+- **Recent foods**: one-click re-log of previously logged items from the Log food card.
+- **Dashboard**: Today's calories with a circular progress ring and animated count-up, protein/carbs/fat macro donut, daily nutrition-quality indicators (sugar % of calories, sodium, fiber, protein-vs-goal), a 7-day trend panel (avg kcal/day, days over goal, sparkline), a daily-calories bar chart with click-to-drill-down into that day's meals, and a weight chart with goal line, weekly rate-of-change, and a projected date to reach goal weight.
+- **BMI**: computed from logged weight + a new height field in Settings; shown on the Weight card with a status category (Underweight/Normal/Overweight/Obese).
+- **Daily protein goal**: derived from goal (target) bodyweight at 1.8g/kg (~0.8g/lb) — a standard mid-range target for preserving lean mass during a cut — surfaced as a status indicator on Today's summary.
+- **Profile**: name field in Settings; header shows a time-of-day-aware personalized greeting ("Good morning, David") when set.
+- **Meal Plan page** (new nav tab):
+  - Persisted **favorite foods** list (add/remove chips, saved across sessions).
+  - Persisted **saved recipes** — composed dishes with fixed, known nutrition (e.g. a batch-cooked soup) that generators treat as one fixed serving rather than re-estimating.
+  - **AI-generated meal plan (Claude)** against a protein target (remaining-today or full-day): produces a natural, creatively composed meal plan (real dish names, not just ingredient lists), can pull in a modest amount of complementary ingredients not on your favorites list when it improves a dish (flagged with a **NEW** badge), and honors free-text guidance (e.g. "soup for dinner," "a crockpot meal," "no eggs").
+  - **Recipe detail view**: click a saved recipe's name to open a modal with an embedded, playable source video (when a video URL is saved), the full ingredient list, and step-by-step instructions. The "+ Add recipe" form gained optional Video URL, Ingredients, and Instructions fields to support this for future recipes.
+  - **Recipe ratings**: rate any saved recipe 1-5 stars (click a filled star again to clear it); the saved recipes list is sorted by rating so favorites rise to the top.
+  - Added 3 more saved recipes from a second video (breakfast egg scramble w/ Canadian bacon & lentils, a high-protein latte, and baked tilapia with zucchini & black beans), and enriched the existing chicken/bean/spinach soup recipe with its full ingredient list, instructions, and source video link.
+  - **Add to plan**: pick a day and meal type (Breakfast/Lunch/Dinner/Snack), then add an item from three sources — a saved recipe, a favorite food (name pulled from your list, with amount/calories/protein entered manually since favorites don't carry fixed macros), or a one-off custom meal (name + amount + macros, not saved anywhere else). No need to go through the AI generator. Each day in "This week's plan" groups its items under meal-type headers (AI-generated plans are grouped too, using the slot Claude assigns each meal) and supports removing a single item without clearing the whole day.
+  - Each day's total protein/calories in "This week's plan" is now shown as a bold, prominent line at the top of the day card instead of small muted text, so the day's full nutritional impact is visible at a glance.
+  - The "Favorite food" add-to-plan field is now a type-to-search box (backed by a datalist) instead of a plain dropdown — typing any substring (e.g. "me") matches anywhere in a food's name (e.g. "Equate **Me**al Replacement Shake"), not just the start.
+
+### Fixed
+- The shopping list only listed each planned meal by name (e.g. "Cheesy Beef Dipping Burrito — 1 serving") instead of what you'd actually need to buy. It now expands any plan item that matches a saved recipe into that recipe's full ingredient list; items with no saved ingredients (favorite foods, custom meals) still show as a simple name + amount line under "Other items".
+- Ingredients shared by multiple recipes (e.g. Greek yogurt, part-skim mozzarella, Frank's Red Hot, chicken breast) were listed separately under each recipe instead of consolidated into one line — buying the same thing 3-4 times over. The shopping list now matches ingredient text across all of a week's recipes (accounting for minor wording differences like "Laughing Cow cheese wedges" vs "Laughing Cow Light cheese wedges") and groups them under one checkable line, with each recipe's specific amount listed underneath so you can still see how much each one needs. This text-matching is a heuristic, not true NLP — ingredients buried inside a longer unsplit phrase (e.g. a "Slaw: Greek yogurt, mayo, vinegar…" line) won't be pulled out and matched individually, so an occasional near-duplicate may still show up as its own line.
+- **"Today's calories" would go blank / show 0 with all food seemingly gone after ~6pm local time (Mountain time).** Every "what is today's date" computation (`todayISO()`, the daily-calories chart range, weight-trend projections) built its ISO date string via `Date.prototype.toISOString()`, which always converts to UTC first — so once local time crossed into the next UTC calendar day (6pm MDT = midnight UTC), the app started asking for "tomorrow's" entries, found none, and looked like today's log had been wiped. No data was ever lost; it was a date-computation bug, not deletion. Fixed by deriving all "today"/date-range logic from local date components instead of UTC, and by parsing stored "YYYY-MM-DD" strings back into `Date` objects the same local-safe way everywhere (a mixed UTC-anchored `new Date("YYYY-MM-DD")` parse in the calendar-range helper would otherwise have silently shifted the whole chart back by a day).
+  - **Weekly plan**: save any generated plan to a day of the week (Mon–Sun); persisted grid shows all seven days with per-day totals and items.
+  - **Shopping list**: aggregates ingredients across every saved day into one checklist, summing matching gram quantities and combining other units, with checkboxes for shopping.
+  - **Categorized, collapsible favorite foods**: each favorite is tagged with a category (Protein, Dairy & Eggs, Produce, Grains & Bread, Condiments & Sauces, Snacks & Other) chosen when adding it; the chip list groups by category and collapses behind a "Show list (N)" toggle so it's out of the way when you're not actively adding to it.
+- **Polish**: toast confirmations on add/edit/delete/settings actions, card hover/press micro-interactions, a custom favicon, a loading skeleton on initial load.
+
+### Fixed
+- USDA "Energy" nutrient was occasionally read in kJ instead of kcal (values ~4x too high) — now filtered to the kcal entry specifically.
+- A USDA search `dataType` filter combination (`Survey (FNDDS)` alongside other types) silently 400'd, breaking some lookups.
+- Food-matching for meal-plan generation could pick a wildly wrong branded product (e.g. a candy product literally named "EGGS" outranking real eggs) — now prefers standardized Foundation/SR Legacy entries, with a median-by-calories fallback among branded results to resist outliers.
+- Chart tooltips could throw on hover (`iso.split is not a function`) when a formatter received a non-date value — date formatters are now defensive.
+- The AI meal-plan endpoint could return truncated/invalid JSON once prompts grew richer (dish names, ingredient flags, free-text guidance) — response token limit raised from 1024 to 4096, plus a clearer error message if it ever happens again.
+- The rule-based meal-plan generator failed outright (502) whenever a favorite food's name contained parentheses (e.g. "Marketside Fresh Spinach... (Fresh)", "(Hot) Freshness Guaranteed..."): USDA's search API 400s on parentheses in the query regardless of URL-encoding. Queries are now sanitized (parentheses stripped) before being sent to USDA.
+- The rule-based generator's fill algorithm greedily maxed out whichever 1-2 favorite foods had the highest protein density (e.g. 300g of cheese + 225g of a protein spread and nothing else) instead of spreading across the list — unrealistic as an actual day of eating. It now round-robins across every matched food (each capped at 150g instead of 300g) and buckets the result into Breakfast/Lunch/Dinner/Snack slots for a day-shaped plan instead of one flat list.
+
+### Removed
+- The rule-based (USDA-matching) meal-plan generator — even after the round-robin/meal-slot fix it still produced mechanical, unrealistic combinations compared to the AI generator. The Meal Plan page now offers a single "Generate meal plan (Claude)" option.
