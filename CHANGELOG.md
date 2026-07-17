@@ -64,3 +64,4 @@ Notable changes to the calorie tracker, newest first. Dates reflect when the wor
 ### Added (mobile)
 - **Mobile Today screen now shows logged food**, grouped by meal (Breakfast/Lunch/Dinner/Snack) with per-meal subtotals, each entry's calories, and a delete button (with a confirmation prompt) — mirrors the web dashboard's meal breakdown. Added `deleteFoodEntry` to `mobile/src/api.js`.
 - **Prior-day browsing on mobile Today**: `‹`/`›` date navigation (capped at today) lets you step backward through previously logged days; the header switches between a personalized greeting (today only), "Yesterday", or a short formatted date, and the calorie/protein/food-logged sections all reload for the selected date.
+- **iOS bundle identifier** (`com.dhohnholt.calorietracker`) set in `mobile/app.json`, required for signing local Xcode builds or TestFlight submissions against a real Apple Developer account.
