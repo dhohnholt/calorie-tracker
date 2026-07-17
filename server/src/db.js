@@ -1,10 +1,17 @@
 import Database from "better-sqlite3";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // DB_PATH lets tests point at a throwaway database instead of the real one.
 const dbPath = process.env.DB_PATH || path.join(__dirname, "..", "data", "calorie-tracker.db");
+
+// server/data/ is gitignored (it holds the real user data file), so it
+// doesn't exist on a fresh deploy — better-sqlite3 doesn't create missing
+// parent directories itself and throws, crashing the process before it can
+// bind to a port at all.
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 
 export const db = new Database(dbPath);
 db.pragma("journal_mode = WAL");
