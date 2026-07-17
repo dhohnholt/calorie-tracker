@@ -31,6 +31,7 @@ export const api = {
   getFoodEntries: (params) => request(`/food-entries?${new URLSearchParams(params)}`),
   createFoodEntry: (entry) =>
     request("/food-entries", { method: "POST", body: JSON.stringify(entry) }),
+  deleteFoodEntry: (id) => request(`/food-entries/${id}`, { method: "DELETE" }),
 
   getWeightEntries: (params) => request(`/weight-entries?${new URLSearchParams(params)}`),
   createWeightEntry: (entry) =>

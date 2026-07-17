@@ -60,3 +60,7 @@ Notable changes to the calorie tracker, newest first. Dates reflect when the wor
 - New database initialization no longer seeds a synthetic 235 lb weight entry — that was placeholder data for early development, not something a fresh install should invent. Existing weight history is untouched; this only changes what happens on a brand-new, empty database.
 - `todayISO()`/`eachDateInRange()` were already fixed earlier for the UTC-evening bug (see above), but the fix now lives once in `shared/dates.js` instead of being duplicated; a Mountain-Time-evening regression test lives in `shared/test/dates.test.js` to keep it fixed.
 - `QuickAddFood.jsx`'s gram/ounce toggle referenced `OZ_TO_G` without importing it (a leftover from moving the quantity-scaling helpers to `shared/nutritionScaling.js` earlier this session) — switching units would have thrown a `ReferenceError`. Now imported alongside the other scaling helpers.
+
+### Added (mobile)
+- **Mobile Today screen now shows logged food**, grouped by meal (Breakfast/Lunch/Dinner/Snack) with per-meal subtotals, each entry's calories, and a delete button (with a confirmation prompt) — mirrors the web dashboard's meal breakdown. Added `deleteFoodEntry` to `mobile/src/api.js`.
+- **Prior-day browsing on mobile Today**: `‹`/`›` date navigation (capped at today) lets you step backward through previously logged days; the header switches between a personalized greeting (today only), "Yesterday", or a short formatted date, and the calorie/protein/food-logged sections all reload for the selected date.
