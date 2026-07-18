@@ -9,6 +9,8 @@ import { useAuth } from "../../src/authContext";
 import { useTheme, radii } from "../../src/theme";
 import Screen from "../../src/components/Screen";
 import { LoadingState, ErrorState, EmptyState } from "../../src/components/StateViews";
+import FoodItemRow from "../../src/components/FoodItemRow";
+import KeyboardDoneAccessory from "../../src/components/KeyboardDoneAccessory";
 
 const MEAL_LABELS = { breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner", snack: "Snack" };
 
@@ -81,6 +83,15 @@ export default function TodayScreen() {
         },
       },
     ]);
+  }
+
+  async function handleUpdate(id, fields) {
+    await api.updateFoodEntry(id, fields);
+    if (fields.date && fields.date !== date) {
+      setDate(fields.date);
+    } else {
+      await load(date);
+    }
   }
 
   if (loading) {
@@ -187,31 +198,13 @@ export default function TodayScreen() {
                     </Text>
                   </View>
                   {mealEntries.map((entry) => (
-                    <View key={entry.id} style={[styles.entryRow, { borderTopColor: theme.border }]}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ color: theme.textPrimary }} numberOfLines={2}>
-                          {entry.description}
-                        </Text>
-                        {entry.notes ? (
-                          <Text style={{ color: theme.textMuted, fontSize: 12 }} numberOfLines={2}>
-                            {entry.notes}
-                          </Text>
-                        ) : null}
-                      </View>
-                      <Text style={{ color: theme.textSecondary, marginLeft: 8 }}>
-                        {Math.round(entry.calories)}
-                      </Text>
-                      <Pressable
-                        onPress={() => handleDelete(entry)}
-                        disabled={deletingId === entry.id}
-                        hitSlop={8}
-                        style={styles.deleteButton}
-                      >
-                        <Text style={{ color: theme.statusCritical, fontSize: 16 }}>
-                          {deletingId === entry.id ? "…" : "×"}
-                        </Text>
-                      </Pressable>
-                    </View>
+                    <FoodItemRow
+                      key={entry.id}
+                      entry={entry}
+                      onUpdate={handleUpdate}
+                      onDelete={handleDelete}
+                      deleting={deletingId === entry.id}
+                    />
                   ))}
                 </View>
               );
@@ -219,6 +212,7 @@ export default function TodayScreen() {
           )}
         </View>
       </ScrollView>
+      <KeyboardDoneAccessory />
     </Screen>
   );
 }
@@ -253,11 +247,4 @@ const styles = StyleSheet.create({
   mealHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4 },
   mealName: { fontSize: 15, fontWeight: "700" },
   mealTotal: { fontSize: 13 },
-  entryRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 8,
-    borderTopWidth: 1,
-  },
-  deleteButton: { paddingHorizontal: 8, paddingVertical: 4 },
 });
