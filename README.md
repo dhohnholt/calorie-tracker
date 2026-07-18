@@ -69,14 +69,22 @@ configured to use, which is a quick way to confirm connectivity.
 
 The mobile app currently implements: a Today summary (calories, goal,
 remaining, protein, logged food by meal, prior-day navigation, pull-to-refresh),
-a Log screen (USDA search, quantity in grams/ounces, meal + date, macro
-preview, recent foods to re-log), a Progress screen (latest weight vs. goal,
-log/replace today's weight, recent history), and a Settings screen (profile
-name, daily calorie goal, goal weight, weight unit, height — protein goal is
-shown as a computed value derived from goal weight, not a separate setting,
-matching the web app). Plan is still a placeholder. No USDA or Anthropic API
-key ever ships in the mobile app — all such calls stay server-side, proxied
-through the existing `/api/nutrition/search` and `/api/meal-plan/ai` routes.
+a Log screen (USDA search, barcode scanning, quantity in grams/ounces/tablespoons/
+food-specific count units like "3 eggs", meal + date, macro preview, recent
+foods to re-log), a Progress screen (latest weight vs. goal, log/replace
+today's weight, recent history), and a Settings screen (profile name, daily
+calorie goal, goal weight, weight unit, height — protein goal is shown as a
+computed value derived from goal weight, not a separate setting, matching
+the web app). Plan is still a placeholder. No USDA or Anthropic API key ever
+ships in the mobile app — all such calls stay server-side, proxied through
+the existing `/api/nutrition/search` and `/api/meal-plan/ai` routes; barcode
+scanning reuses the same search endpoint (a UPC/GTIN is just another search
+query USDA already resolves correctly) rather than adding a new lookup
+source.
+
+Barcode scanning requires camera access (`expo-camera`) — the app requests
+permission the first time you tap the scan button, and the permission
+message is configured in `app.json`'s `expo-camera` plugin config.
 
 ## Logging food via chat
 

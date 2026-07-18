@@ -24,6 +24,7 @@ import { api } from "../../src/api";
 import { useTheme, radii } from "../../src/theme";
 import Screen from "../../src/components/Screen";
 import { LoadingState, EmptyState, ErrorState } from "../../src/components/StateViews";
+import BarcodeScanner from "../../src/components/BarcodeScanner";
 
 const MEAL_LABELS = { breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner", snack: "Snack" };
 
@@ -55,6 +56,7 @@ export default function LogScreen() {
   const [date, setDate] = useState(todayISO());
   const [saving, setSaving] = useState(false);
   const [savedMessage, setSavedMessage] = useState(null);
+  const [scanning, setScanning] = useState(false);
 
   const loadRecent = useCallback(async () => {
     try {
@@ -71,13 +73,14 @@ export default function LogScreen() {
     }, [loadRecent])
   );
 
-  async function handleSearch() {
-    if (!query.trim()) return;
+  async function handleSearch(queryOverride) {
+    const q = (typeof queryOverride === "string" ? queryOverride : query).trim();
+    if (!q) return;
     setSearching(true);
     setError(null);
     setSelected(null);
     try {
-      const { foods } = await api.searchNutrition(query.trim());
+      const { foods } = await api.searchNutrition(q);
       setResults(foods);
     } catch (err) {
       setError(err.message);
@@ -85,6 +88,12 @@ export default function LogScreen() {
     } finally {
       setSearching(false);
     }
+  }
+
+  function handleBarcodeScanned(barcode) {
+    setScanning(false);
+    setQuery(barcode);
+    handleSearch(barcode);
   }
 
   function handleSelect(food) {
@@ -164,6 +173,10 @@ export default function LogScreen() {
     ? scaledMacros(selected, toGrams(Number(amount) || 0, unit, unitConversionFactor(unit, selected)))
     : null;
 
+  if (scanning) {
+    return <BarcodeScanner onScanned={handleBarcodeScanned} onClose={() => setScanning(false)} />;
+  }
+
   return (
     <Screen>
       <View style={styles.content}>
@@ -179,12 +192,18 @@ export default function LogScreen() {
             placeholderTextColor={theme.textMuted}
             value={query}
             onChangeText={setQuery}
-            onSubmitEditing={handleSearch}
+            onSubmitEditing={() => handleSearch()}
             returnKeyType="search"
           />
           <Pressable
+            style={[styles.searchButton, { backgroundColor: theme.surface1, borderColor: theme.border, borderWidth: 1 }]}
+            onPress={() => setScanning(true)}
+          >
+            <Text style={[styles.searchButtonText, { color: theme.textPrimary }]}>📷</Text>
+          </Pressable>
+          <Pressable
             style={[styles.searchButton, { backgroundColor: theme.series1 }]}
-            onPress={handleSearch}
+            onPress={() => handleSearch()}
             disabled={searching}
           >
             <Text style={styles.searchButtonText}>{searching ? "…" : "Search"}</Text>
