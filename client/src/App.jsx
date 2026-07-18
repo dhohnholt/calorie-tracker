@@ -140,7 +140,6 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>{profileName ? `${timeGreeting()}, ${profileName}` : "Calorie Tracker"}</h1>
         <nav className="app-nav">
           <button
             className={view === "dashboard" ? "app-nav__tab app-nav__tab--active" : "app-nav__tab"}
@@ -163,6 +162,12 @@ export default function App() {
           ⚙
         </button>
       </header>
+
+      <div className="hero-banner">
+        <h1 className="hero-banner__title">
+          {profileName ? `${timeGreeting()}, ${profileName}` : "Calorie Tracker"}
+        </h1>
+      </div>
 
       {view === "dashboard" ? (
         <main className="app-grid">

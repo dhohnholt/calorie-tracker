@@ -47,13 +47,13 @@ function sanitizeQuery(query) {
   return query.replace(/[()]/g, " ").replace(/\s+/g, " ").trim();
 }
 
-export async function searchUSDAFoods(query, pageSize = 10) {
+async function fetchUSDA(query, pageSize, dataType) {
   const apiKey = process.env.USDA_API_KEY || "DEMO_KEY";
   const url = new URL("https://api.nal.usda.gov/fdc/v1/foods/search");
   url.searchParams.set("api_key", apiKey);
   url.searchParams.set("query", sanitizeQuery(query));
   url.searchParams.set("pageSize", String(pageSize));
-  url.searchParams.set("dataType", "Foundation,SR Legacy,Branded");
+  url.searchParams.set("dataType", dataType);
 
   const resp = await fetch(url);
   if (!resp.ok) {
@@ -61,7 +61,25 @@ export async function searchUSDAFoods(query, pageSize = 10) {
     throw new Error(`USDA API error (${resp.status}): ${text}`);
   }
   const data = await resp.json();
-  return (data.foods || []).map(simplifyFood);
+  return data.foods || [];
+}
+
+// USDA's relevance ranking often buries Branded results behind generic
+// Foundation/SR Legacy matches for common terms (e.g. "yogurt" returns 20+
+// SR Legacy entries before a single Branded one) — raising pageSize alone
+// doesn't fix this, since the extra slots just go to more of the same
+// dataType. Querying Branded separately and merging guarantees real brand-
+// name products actually show up instead of being crowded out by ranking.
+export async function searchUSDAFoods(query, pageSize = 25) {
+  const brandedCount = 10;
+  const genericCount = pageSize - brandedCount;
+
+  const [genericFoods, brandedFoods] = await Promise.all([
+    fetchUSDA(query, genericCount, "Foundation,SR Legacy"),
+    fetchUSDA(query, brandedCount, "Branded"),
+  ]);
+
+  return [...genericFoods, ...brandedFoods].map(simplifyFood);
 }
 
 router.get("/search", async (req, res) => {

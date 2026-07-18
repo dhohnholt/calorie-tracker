@@ -71,6 +71,37 @@
   color: white;
 }
 
+.hero-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  margin-bottom: 24px;
+  border-radius: var(--radius-lg);
+  background-image: url("https://i.postimg.cc/NfB1Pt49/overhead-shot-of-middle-eastern-appetizers-on-tabl-2026-03-09-22-32-32-utc.webp");
+  background-size: cover;
+  background-position: center;
+}
+
+.hero-banner__title {
+  margin: 0;
+  padding: 0 24px;
+  font-size: 34px;
+  font-weight: 800;
+  color: #fff;
+  text-align: center;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.55);
+}
+
+@media (max-width: 560px) {
+  .hero-banner {
+    min-height: 140px;
+  }
+  .hero-banner__title {
+    font-size: 24px;
+  }
+}
+
 .app-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
