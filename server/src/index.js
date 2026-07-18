@@ -2,8 +2,9 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import "./db.js";
+import { requireAuth } from "./auth.js";
 
-import profilesRouter from "./routes/profiles.js";
+import authRouter from "./routes/auth.js";
 import foodEntriesRouter from "./routes/foodEntries.js";
 import weightEntriesRouter from "./routes/weightEntries.js";
 import summaryRouter from "./routes/summary.js";
@@ -18,18 +19,20 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use("/api/profiles", profilesRouter);
-app.use("/api/food-entries", foodEntriesRouter);
-app.use("/api/weight-entries", weightEntriesRouter);
-app.use("/api/summary", summaryRouter);
-app.use("/api/settings", settingsRouter);
-app.use("/api/nutrition", nutritionRouter);
-app.use("/api/meal-plan", mealPlanRouter);
-app.use("/api/recipes", recipesRouter);
-app.use("/api/favorite-foods", favoriteFoodsRouter);
-app.use("/api/weekly-plan", weeklyPlanRouter);
-
+// Signup/login/health are the only public routes — everything else requires
+// a valid session token.
+app.use("/api/auth", authRouter);
 app.get("/api/health", (req, res) => res.json({ ok: true }));
+
+app.use("/api/food-entries", requireAuth, foodEntriesRouter);
+app.use("/api/weight-entries", requireAuth, weightEntriesRouter);
+app.use("/api/summary", requireAuth, summaryRouter);
+app.use("/api/settings", requireAuth, settingsRouter);
+app.use("/api/nutrition", requireAuth, nutritionRouter);
+app.use("/api/meal-plan", requireAuth, mealPlanRouter);
+app.use("/api/recipes", requireAuth, recipesRouter);
+app.use("/api/favorite-foods", requireAuth, favoriteFoodsRouter);
+app.use("/api/weekly-plan", requireAuth, weeklyPlanRouter);
 
 export default app;
 

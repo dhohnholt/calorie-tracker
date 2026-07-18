@@ -313,6 +313,40 @@ if (!recipesColumnsPostMigration.some((c) => c.name === "created_by_profile_id")
   }
 }
 
+// --- Accounts (username/password login) --------------------------------
+//
+// Additive on top of the profiles table above — a profile with no username
+// is a "legacy" profile from the old no-password switcher (or a fresh
+// install's auto-seeded first profile) waiting to be claimed by the first
+// signup. See routes/auth.js for the claim logic. The unique index is
+// partial (WHERE username IS NOT NULL) so multiple unclaimed legacy
+// profiles could in principle coexist without violating uniqueness, even
+// though in practice at most one is ever unclaimed at a time.
+const profilesColumns = db.prepare("PRAGMA table_info(profiles)").all();
+if (!profilesColumns.some((c) => c.name === "username")) {
+  db.exec("ALTER TABLE profiles ADD COLUMN username TEXT COLLATE NOCASE");
+}
+if (!profilesColumns.some((c) => c.name === "password_hash")) {
+  db.exec("ALTER TABLE profiles ADD COLUMN password_hash TEXT");
+}
+db.exec(
+  "CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_username ON profiles(username) WHERE username IS NOT NULL"
+);
+
+// Opaque bearer session tokens. Only a sha256 hash of the token is stored —
+// the raw token is a bearer credential (like an API key), so it's never
+// persisted anywhere, only returned once at login/signup time.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS sessions (
+    token_hash TEXT PRIMARY KEY,
+    profile_id INTEGER NOT NULL REFERENCES profiles(id),
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_sessions_profile ON sessions(profile_id);
+`);
+
 export function seedDefaultProfileSettings(profileId) {
   const insert = db.prepare(
     `INSERT INTO settings (profile_id, key, value) VALUES (?, ?, ?)

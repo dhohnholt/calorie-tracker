@@ -1,6 +1,5 @@
 import { Router } from "express";
 import { db } from "../db.js";
-import { requireProfileId } from "../profileScope.js";
 
 const router = Router();
 
@@ -20,16 +19,14 @@ function totals(items) {
 }
 
 router.get("/", (req, res) => {
-  const profileId = requireProfileId(req, res);
-  if (profileId === null) return;
+  const profileId = req.profileId;
 
   const rows = db.prepare("SELECT * FROM weekly_meal_plans WHERE profile_id = ?").all(profileId);
   res.json(rows.map(deserialize));
 });
 
 router.put("/:day", (req, res) => {
-  const profileId = requireProfileId(req, res);
-  if (profileId === null) return;
+  const profileId = req.profileId;
 
   const { day } = req.params;
   if (!DAYS.includes(day)) {
@@ -68,8 +65,7 @@ router.put("/:day", (req, res) => {
 });
 
 router.post("/:day/item", (req, res) => {
-  const profileId = requireProfileId(req, res);
-  if (profileId === null) return;
+  const profileId = req.profileId;
 
   const { day } = req.params;
   if (!DAYS.includes(day)) {
@@ -140,8 +136,7 @@ router.post("/:day/item", (req, res) => {
 });
 
 router.delete("/:day/items/:index", (req, res) => {
-  const profileId = requireProfileId(req, res);
-  if (profileId === null) return;
+  const profileId = req.profileId;
 
   const { day, index } = req.params;
   if (!DAYS.includes(day)) {
@@ -179,8 +174,7 @@ router.delete("/:day/items/:index", (req, res) => {
 });
 
 router.delete("/:day", (req, res) => {
-  const profileId = requireProfileId(req, res);
-  if (profileId === null) return;
+  const profileId = req.profileId;
 
   db.prepare("DELETE FROM weekly_meal_plans WHERE profile_id = ? AND day_of_week = ?").run(
     profileId,

@@ -67,6 +67,45 @@ export function validateProfile(body) {
   return errors;
 }
 
+const USERNAME_RE = /^[a-zA-Z0-9_.-]{3,30}$/;
+const MIN_PASSWORD_LENGTH = 8;
+
+export function isValidUsername(value) {
+  return typeof value === "string" && USERNAME_RE.test(value);
+}
+
+// Used for account creation: needs a display name (profiles.name), a login
+// handle (username), and a password. Kept separate from validateProfile
+// since that's still used for the legacy-profile "name" field alone.
+export function validateSignup(body) {
+  const errors = [];
+  if (typeof body.name !== "string" || !body.name.trim()) {
+    errors.push("name is required");
+  } else if (body.name.trim().length > MAX_PROFILE_NAME_LENGTH) {
+    errors.push(`name must be ${MAX_PROFILE_NAME_LENGTH} characters or fewer`);
+  }
+  if (!isValidUsername(body.username)) {
+    errors.push(
+      "username must be 3-30 characters and contain only letters, numbers, underscores, periods, or hyphens"
+    );
+  }
+  if (typeof body.password !== "string" || body.password.length < MIN_PASSWORD_LENGTH) {
+    errors.push(`password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+  }
+  return errors;
+}
+
+export function validateLogin(body) {
+  const errors = [];
+  if (typeof body.username !== "string" || !body.username.trim()) {
+    errors.push("username is required");
+  }
+  if (typeof body.password !== "string" || !body.password) {
+    errors.push("password is required");
+  }
+  return errors;
+}
+
 const NUTRITION_FIELDS = ["protein_g", "carbs_g", "fat_g", "fiber_g", "sugar_g", "sodium_mg"];
 
 // Returns an array of human-readable error strings; empty array means valid.

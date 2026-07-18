@@ -3,24 +3,20 @@ import { Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } fro
 import { useFocusEffect } from "expo-router";
 import { cmToIn, inToCm, proteinGoalGrams } from "calorie-tracker-shared/bodyMetrics.js";
 import { api, API_BASE_URL } from "../../src/api";
-import { useProfiles } from "../../src/profileContext";
+import { useAuth } from "../../src/authContext";
 import { useTheme, radii } from "../../src/theme";
 import Screen from "../../src/components/Screen";
 import { LoadingState, ErrorState } from "../../src/components/StateViews";
 
 export default function SettingsScreen() {
   const theme = useTheme();
-  const { profiles, activeProfileId, switchProfile, addProfile } = useProfiles();
+  const { me, logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
   const [savedMessage, setSavedMessage] = useState(null);
-
-  const [showAddProfile, setShowAddProfile] = useState(false);
-  const [newProfileName, setNewProfileName] = useState("");
-  const [addingProfile, setAddingProfile] = useState(false);
-  const [addProfileError, setAddProfileError] = useState(null);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const [calorieGoal, setCalorieGoal] = useState("");
   const [goalWeight, setGoalWeight] = useState("");
@@ -52,21 +48,15 @@ export default function SettingsScreen() {
   useFocusEffect(
     useCallback(() => {
       load();
-    }, [load, activeProfileId])
+    }, [load])
   );
 
-  async function handleAddProfile() {
-    if (!newProfileName.trim()) return;
-    setAddingProfile(true);
-    setAddProfileError(null);
+  async function handleLogout() {
+    setLoggingOut(true);
     try {
-      await addProfile(newProfileName.trim());
-      setNewProfileName("");
-      setShowAddProfile(false);
-    } catch (err) {
-      setAddProfileError(err.message);
+      await logout();
     } finally {
-      setAddingProfile(false);
+      setLoggingOut(false);
     }
   }
 
@@ -127,59 +117,18 @@ export default function SettingsScreen() {
         <Text style={[styles.title, { color: theme.textPrimary }]}>Settings</Text>
 
         <View style={[styles.card, { backgroundColor: theme.surface1, borderColor: theme.border }]}>
-          <Text style={[styles.label, { color: theme.textSecondary }]}>Profile</Text>
-          <View style={styles.profileList}>
-            {profiles.map((p) => (
-              <Pressable
-                key={p.id}
-                onPress={() => switchProfile(p.id)}
-                style={[
-                  styles.profileChip,
-                  {
-                    backgroundColor: p.id === activeProfileId ? theme.series1 : "transparent",
-                    borderColor: theme.border,
-                  },
-                ]}
-              >
-                <Text style={{ color: p.id === activeProfileId ? "#fff" : theme.textSecondary, fontWeight: "600" }}>
-                  {p.name}
-                </Text>
-              </Pressable>
-            ))}
-            <Pressable
-              onPress={() => setShowAddProfile((v) => !v)}
-              style={[styles.profileChip, { borderColor: theme.border }]}
-            >
-              <Text style={{ color: theme.textSecondary, fontWeight: "600" }}>
-                {showAddProfile ? "Cancel" : "+ Add profile"}
-              </Text>
-            </Pressable>
-          </View>
-
-          {showAddProfile ? (
-            <View style={styles.addProfileRow}>
-              <TextInput
-                style={[
-                  styles.input,
-                  styles.addProfileInput,
-                  { backgroundColor: theme.pagePlane, color: theme.textPrimary, borderColor: theme.border },
-                ]}
-                placeholder="e.g. Sarah"
-                placeholderTextColor={theme.textMuted}
-                value={newProfileName}
-                onChangeText={setNewProfileName}
-                autoFocus
-              />
-              <Pressable
-                style={[styles.addProfileButton, { backgroundColor: theme.series1 }]}
-                onPress={handleAddProfile}
-                disabled={addingProfile}
-              >
-                <Text style={styles.saveButtonText}>{addingProfile ? "Adding…" : "Add"}</Text>
-              </Pressable>
-            </View>
-          ) : null}
-          {addProfileError ? <Text style={{ color: theme.statusCritical, marginTop: 8 }}>{addProfileError}</Text> : null}
+          <Text style={[styles.label, { color: theme.textSecondary }]}>Account</Text>
+          <Text style={[styles.accountName, { color: theme.textPrimary }]}>{me?.name}</Text>
+          <Text style={[styles.hint, { color: theme.textMuted }]}>@{me?.username}</Text>
+          <Pressable
+            style={[styles.logoutButton, { borderColor: theme.border }]}
+            onPress={handleLogout}
+            disabled={loggingOut}
+          >
+            <Text style={{ color: theme.statusCritical, fontWeight: "700" }}>
+              {loggingOut ? "Logging out…" : "Log out"}
+            </Text>
+          </Pressable>
         </View>
 
         <View style={[styles.card, { backgroundColor: theme.surface1, borderColor: theme.border }]}>
@@ -273,11 +222,8 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderRadius: radii.sm, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, marginTop: 6 },
   unitToggle: { flexDirection: "row", gap: 6, marginTop: 6 },
   unitOption: { borderWidth: 1, borderRadius: radii.sm, paddingHorizontal: 16, paddingVertical: 10 },
-  profileList: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 6 },
-  profileChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 },
-  addProfileRow: { flexDirection: "row", gap: 8, marginTop: 12, alignItems: "center" },
-  addProfileInput: { flex: 1, marginTop: 0 },
-  addProfileButton: { borderRadius: radii.sm, paddingHorizontal: 16, paddingVertical: 10 },
+  accountName: { fontSize: 17, fontWeight: "700", marginTop: 6 },
+  logoutButton: { borderWidth: 1, borderRadius: radii.sm, paddingVertical: 10, alignItems: "center", marginTop: 14 },
   derived: { fontSize: 13, marginTop: 12 },
   saveButton: { borderRadius: radii.sm, paddingVertical: 12, alignItems: "center", marginTop: 16 },
   saveButtonText: { color: "#fff", fontWeight: "700" },

@@ -1,13 +1,11 @@
 import { Router } from "express";
 import { db } from "../db.js";
 import { validateWeightEntry } from "../../../shared/validation.js";
-import { requireProfileId } from "../profileScope.js";
 
 const router = Router();
 
 router.get("/", (req, res) => {
-  const profileId = requireProfileId(req, res);
-  if (profileId === null) return;
+  const profileId = req.profileId;
 
   const { start, end } = req.query;
   let rows;
@@ -22,8 +20,7 @@ router.get("/", (req, res) => {
 });
 
 router.post("/", (req, res) => {
-  const profileId = requireProfileId(req, res);
-  if (profileId === null) return;
+  const profileId = req.profileId;
 
   const errors = validateWeightEntry(req.body);
   if (errors.length > 0) {
@@ -44,8 +41,7 @@ router.post("/", (req, res) => {
 });
 
 router.delete("/:id", (req, res) => {
-  const profileId = requireProfileId(req, res);
-  if (profileId === null) return;
+  const profileId = req.profileId;
 
   db.prepare("DELETE FROM weight_entries WHERE id = ? AND profile_id = ?").run(req.params.id, profileId);
   res.status(204).end();

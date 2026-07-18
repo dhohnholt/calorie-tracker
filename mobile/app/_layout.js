@@ -2,25 +2,22 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useColorScheme } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { ProfileProvider, useProfiles } from "../src/profileContext";
+import { AuthProvider, useAuth } from "../src/authContext";
+import AuthScreen from "../src/components/AuthScreen";
 import Screen from "../src/components/Screen";
-import { LoadingState, ErrorState } from "../src/components/StateViews";
+import { LoadingState } from "../src/components/StateViews";
 
 function Gate({ children }) {
-  const { ready, error } = useProfiles();
-  if (error) {
-    return (
-      <Screen>
-        <ErrorState message={error} />
-      </Screen>
-    );
-  }
+  const { ready, authenticated } = useAuth();
   if (!ready) {
     return (
       <Screen>
         <LoadingState label="Loading…" />
       </Screen>
     );
+  }
+  if (!authenticated) {
+    return <AuthScreen />;
   }
   return children;
 }
@@ -30,13 +27,13 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <StatusBar style={scheme === "dark" ? "light" : "dark"} />
-      <ProfileProvider>
+      <AuthProvider>
         <Gate>
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />
           </Stack>
         </Gate>
-      </ProfileProvider>
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }

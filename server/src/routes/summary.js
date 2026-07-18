@@ -1,12 +1,10 @@
 import { Router } from "express";
 import { db } from "../db.js";
-import { requireProfileId } from "../profileScope.js";
 
 const router = Router();
 
 router.get("/daily", (req, res) => {
-  const profileId = requireProfileId(req, res);
-  if (profileId === null) return;
+  const profileId = req.profileId;
 
   const { start, end } = req.query;
   if (!start || !end) {

@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { db, PER_PROFILE_SETTINGS_KEYS } from "../db.js";
 import { validateSettingsUpdate } from "../../../shared/validation.js";
-import { requireProfileId } from "../profileScope.js";
 
 const router = Router();
 
@@ -13,15 +12,13 @@ function mergedSettings(profileId) {
 }
 
 router.get("/", (req, res) => {
-  const profileId = requireProfileId(req, res);
-  if (profileId === null) return;
+  const profileId = req.profileId;
 
   res.json(mergedSettings(profileId));
 });
 
 router.put("/", (req, res) => {
-  const profileId = requireProfileId(req, res);
-  if (profileId === null) return;
+  const profileId = req.profileId;
 
   const errors = validateSettingsUpdate(req.body);
   if (errors.length > 0) {

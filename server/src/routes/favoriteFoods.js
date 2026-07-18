@@ -1,12 +1,10 @@
 import { Router } from "express";
 import { db } from "../db.js";
-import { requireProfileId } from "../profileScope.js";
 
 const router = Router();
 
 router.get("/", (req, res) => {
-  const profileId = requireProfileId(req, res);
-  if (profileId === null) return;
+  const profileId = req.profileId;
 
   const rows = db
     .prepare("SELECT * FROM favorite_foods WHERE profile_id = ? ORDER BY created_at ASC")
@@ -15,8 +13,7 @@ router.get("/", (req, res) => {
 });
 
 router.post("/", (req, res) => {
-  const profileId = requireProfileId(req, res);
-  if (profileId === null) return;
+  const profileId = req.profileId;
 
   const { name, category } = req.body;
   if (!name || !name.trim()) {
@@ -38,8 +35,7 @@ router.post("/", (req, res) => {
 });
 
 router.delete("/:id", (req, res) => {
-  const profileId = requireProfileId(req, res);
-  if (profileId === null) return;
+  const profileId = req.profileId;
 
   db.prepare("DELETE FROM favorite_foods WHERE id = ? AND profile_id = ?").run(req.params.id, profileId);
   res.status(204).end();

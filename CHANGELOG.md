@@ -12,6 +12,14 @@ Notable changes to the calorie tracker, newest first. Dates reflect when the wor
 ### Changed
 - The old single "Your name" field in Settings is gone, replaced by the profile switcher — names are now managed per-profile via "+ Add profile" instead of a free-text settings field.
 
+### Added (later same day)
+- **Real accounts with username/password login**, replacing the no-password profile switcher above. Each person now signs up with a display name, username, and password from a login screen (web and mobile); self-serve signup is open to anyone with the app's URL, matching a small trusted-household use case rather than a public product. Sessions are opaque bearer tokens (not JWTs) stored server-side in a `sessions` table, hashed at rest, valid for 90 days, and revoked immediately on logout.
+- The one profile that existed under the old switcher is claimed automatically by whoever signs up first — their existing food/weight/recipe/settings data carries over under their new login rather than starting empty. Every account after that starts fresh with default settings, same as before.
+- Every API route except `/api/auth/signup`, `/api/auth/login`, and `/api/health` now requires a valid session; a request's account is derived entirely from its bearer token, never from a client-supplied id.
+
+### Changed (later same day)
+- The profile switcher UI (dropdown/chips for picking "who's using it") is gone, since a login already identifies who's using it. Web shows a "Log out" button in the header; mobile shows the account name plus a "Log out" button in Settings.
+
 ## 2026-07-16
 
 ### Added

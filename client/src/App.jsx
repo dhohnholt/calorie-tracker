@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api";
-import { getCurrentProfileId, setCurrentProfileId } from "./profile";
+import { getToken, clearToken } from "./auth";
 import { daysAgoISO, todayISO, eachDateInRange, timeGreeting } from "./dates";
 import { proteinGoalGrams } from "./bodyMetrics";
 import QuickAddFood from "./components/QuickAddFood";
@@ -10,6 +10,7 @@ import CaloriesChart from "./components/CaloriesChart";
 import MealBreakdown from "./components/MealBreakdown";
 import WeightChart from "./components/WeightChart";
 import SettingsModal from "./components/SettingsModal";
+import AuthScreen from "./components/AuthScreen";
 import Toast from "./components/Toast";
 import LoadingSkeleton from "./components/LoadingSkeleton";
 import MealPlanPage from "./components/MealPlanPage";
@@ -19,6 +20,8 @@ const CHART_DAYS = 20;
 
 export default function App() {
   const [view, setView] = useState("dashboard");
+  const [authStatus, setAuthStatus] = useState("checking"); // checking | authenticated | unauthenticated
+  const [me, setMe] = useState(null);
   const [settings, setSettings] = useState(null);
   const [dailySummary, setDailySummary] = useState([]);
   const [weightEntries, setWeightEntries] = useState([]);
@@ -28,11 +31,6 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
   const toastTimeout = useRef(null);
-
-  const [profiles, setProfiles] = useState([]);
-  const [activeProfileId, setActiveProfileId] = useState(null);
-  const [showAddProfile, setShowAddProfile] = useState(false);
-  const [newProfileName, setNewProfileName] = useState("");
 
   function showToast(message, type = "success") {
     clearTimeout(toastTimeout.current);
@@ -60,40 +58,60 @@ export default function App() {
     setSelectedDateEntries(entries);
   }
 
+  function resetToLoggedOut() {
+    setMe(null);
+    setSettings(null);
+    setDailySummary([]);
+    setWeightEntries([]);
+    setSelectedDateEntries([]);
+    setLoading(true);
+    setAuthStatus("unauthenticated");
+  }
+
   useEffect(() => {
-    api.getProfiles().then((list) => {
-      setProfiles(list);
-      const stored = getCurrentProfileId();
-      const initial = list.some((p) => p.id === stored) ? stored : list[0]?.id ?? null;
-      if (initial) setCurrentProfileId(initial);
-      setActiveProfileId(initial);
-    });
+    if (!getToken()) {
+      setAuthStatus("unauthenticated");
+      return;
+    }
+    api
+      .getMe()
+      .then((profile) => {
+        setMe(profile);
+        setAuthStatus("authenticated");
+      })
+      .catch(() => setAuthStatus("unauthenticated"));
   }, []);
 
   useEffect(() => {
-    if (!activeProfileId) return;
-    setLoading(true);
-    loadAll();
-  }, [activeProfileId]);
+    window.addEventListener("auth:unauthorized", resetToLoggedOut);
+    return () => window.removeEventListener("auth:unauthorized", resetToLoggedOut);
+  }, []);
 
   useEffect(() => {
-    if (!activeProfileId) return;
-    loadSelectedDateEntries(selectedDate);
-  }, [selectedDate, activeProfileId]);
+    if (authStatus !== "authenticated") return;
+    setLoading(true);
+    loadAll();
+  }, [authStatus]);
 
-  function handleSwitchProfile(id) {
-    setCurrentProfileId(id);
-    setActiveProfileId(id);
+  useEffect(() => {
+    if (authStatus !== "authenticated") return;
+    loadSelectedDateEntries(selectedDate);
+  }, [selectedDate, authStatus]);
+
+  function handleAuthenticated(profile) {
+    setMe(profile);
+    setAuthStatus("authenticated");
   }
 
-  async function handleAddProfile(e) {
-    e.preventDefault();
-    if (!newProfileName.trim()) return;
-    const created = await api.createProfile(newProfileName.trim());
-    setProfiles((prev) => [...prev, created]);
-    setNewProfileName("");
-    setShowAddProfile(false);
-    handleSwitchProfile(created.id);
+  async function handleLogout() {
+    try {
+      await api.logout();
+    } catch {
+      // Already logged out server-side (e.g. expired session) — fine, we're
+      // clearing local state regardless.
+    }
+    clearToken();
+    resetToLoggedOut();
   }
 
   const chartData = useMemo(() => {
@@ -160,14 +178,22 @@ export default function App() {
     showToast("Settings saved");
   }
 
-  if (loading || !settings || !activeProfileId) {
+  if (authStatus === "checking") {
+    return <LoadingSkeleton />;
+  }
+
+  if (authStatus === "unauthenticated") {
+    return <AuthScreen onAuthenticated={handleAuthenticated} />;
+  }
+
+  if (loading || !settings) {
     return <LoadingSkeleton />;
   }
 
   const calorieGoal = Number(settings.calorie_goal);
   const goalWeight = Number(settings.goal_weight);
   const weightUnit = settings.weight_unit;
-  const profileName = profiles.find((p) => p.id === activeProfileId)?.name;
+  const profileName = me?.name;
   const heightCm = settings.height_cm ? Number(settings.height_cm) : null;
   const proteinGoal = proteinGoalGrams(goalWeight, weightUnit);
 
@@ -188,31 +214,9 @@ export default function App() {
             Meal Plan
           </button>
         </nav>
-        {profiles.length > 1 ? (
-          <select
-            className="profile-switcher"
-            value={activeProfileId}
-            onChange={(e) =>
-              e.target.value === "__add__"
-                ? setShowAddProfile(true)
-                : handleSwitchProfile(Number(e.target.value))
-            }
-          >
-            {profiles.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-            <option value="__add__">+ Add profile…</option>
-          </select>
-        ) : (
-          <button
-            className="profile-switcher profile-switcher--add-only"
-            onClick={() => setShowAddProfile(true)}
-          >
-            + Add profile
-          </button>
-        )}
+        <button className="button-secondary" onClick={handleLogout}>
+          Log out
+        </button>
         <button
           className="icon-button icon-button--settings"
           onClick={() => setShowSettings(true)}
@@ -268,34 +272,6 @@ export default function App() {
           onSave={handleSaveSettings}
           onClose={() => setShowSettings(false)}
         />
-      )}
-
-      {showAddProfile && (
-        <div className="modal-backdrop" onClick={() => setShowAddProfile(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2>Add profile</h2>
-            <form onSubmit={handleAddProfile} className="settings-form">
-              <label>
-                Name
-                <input
-                  type="text"
-                  autoFocus
-                  placeholder="e.g. Sarah"
-                  value={newProfileName}
-                  onChange={(e) => setNewProfileName(e.target.value)}
-                />
-              </label>
-              <div className="modal-actions">
-                <button type="button" className="button-secondary" onClick={() => setShowAddProfile(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="button-primary">
-                  Add
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
       )}
 
       <Toast toast={toast} />

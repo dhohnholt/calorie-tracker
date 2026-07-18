@@ -8,10 +8,13 @@ import {
   isNonNegativeFiniteNumber,
   isValidHeightCm,
   isValidProfileId,
+  isValidUsername,
   validateFoodEntry,
   validateWeightEntry,
   validateSettingsUpdate,
   validateProfile,
+  validateSignup,
+  validateLogin,
 } from "../validation.js";
 
 describe("isValidISODate", () => {
@@ -122,6 +125,51 @@ describe("validateProfile", () => {
   });
   test("allows a name right at the length limit", () => {
     assert.deepEqual(validateProfile({ name: "x".repeat(60) }), []);
+  });
+});
+
+describe("isValidUsername", () => {
+  test("accepts letters, numbers, underscores, periods, hyphens within 3-30 chars", () => {
+    assert.equal(isValidUsername("david"), true);
+    assert.equal(isValidUsername("david_92"), true);
+    assert.equal(isValidUsername("david.h-2"), true);
+  });
+  test("rejects too short, too long, invalid characters, and non-strings", () => {
+    assert.equal(isValidUsername("ab"), false);
+    assert.equal(isValidUsername("x".repeat(31)), false);
+    assert.equal(isValidUsername("david h"), false);
+    assert.equal(isValidUsername("david@h"), false);
+    assert.equal(isValidUsername(null), false);
+    assert.equal(isValidUsername(undefined), false);
+  });
+});
+
+describe("validateSignup", () => {
+  const base = { name: "David", username: "david", password: "correcthorse" };
+
+  test("passes with valid name/username/password", () => {
+    assert.deepEqual(validateSignup(base), []);
+  });
+  test("flags a missing or blank name", () => {
+    assert.ok(validateSignup({ ...base, name: "" }).length > 0);
+    assert.ok(validateSignup({ ...base, name: "   " }).length > 0);
+  });
+  test("flags an invalid username", () => {
+    assert.ok(validateSignup({ ...base, username: "d" }).length > 0);
+  });
+  test("flags a too-short password", () => {
+    assert.ok(validateSignup({ ...base, password: "short" }).length > 0);
+  });
+});
+
+describe("validateLogin", () => {
+  test("passes with username and password present", () => {
+    assert.deepEqual(validateLogin({ username: "david", password: "anything" }), []);
+  });
+  test("flags missing username or password", () => {
+    assert.ok(validateLogin({ password: "anything" }).length > 0);
+    assert.ok(validateLogin({ username: "david" }).length > 0);
+    assert.ok(validateLogin({}).length > 0);
   });
 });
 

@@ -1,6 +1,5 @@
 import { Router } from "express";
 import { db } from "../db.js";
-import { requireProfileId } from "../profileScope.js";
 
 const router = Router();
 
@@ -18,8 +17,7 @@ function deserialize(row) {
 }
 
 router.get("/", (req, res) => {
-  const profileId = requireProfileId(req, res);
-  if (profileId === null) return;
+  const profileId = req.profileId;
 
   const rows = db
     .prepare(
@@ -33,8 +31,7 @@ router.get("/", (req, res) => {
 });
 
 router.post("/", (req, res) => {
-  const profileId = requireProfileId(req, res);
-  if (profileId === null) return;
+  const profileId = req.profileId;
 
   const {
     name,
@@ -105,8 +102,7 @@ router.post("/", (req, res) => {
 // Adds an existing library recipe to this profile's personal collection
 // without changing the shared recipe itself.
 router.post("/:id/add", (req, res) => {
-  const profileId = requireProfileId(req, res);
-  if (profileId === null) return;
+  const profileId = req.profileId;
 
   const recipe = db.prepare("SELECT id FROM recipes WHERE id = ?").get(req.params.id);
   if (!recipe) return res.status(404).json({ error: "recipe not found" });
@@ -128,8 +124,7 @@ router.post("/:id/add", (req, res) => {
 });
 
 router.put("/:id/rating", (req, res) => {
-  const profileId = requireProfileId(req, res);
-  if (profileId === null) return;
+  const profileId = req.profileId;
 
   const { rating } = req.body;
   if (rating == null || rating < 0 || rating > 5) {
@@ -161,8 +156,7 @@ router.put("/:id/rating", (req, res) => {
 // Removes the recipe from this profile's personal collection only — the
 // shared library entry (and any other profile's collection) is untouched.
 router.delete("/:id", (req, res) => {
-  const profileId = requireProfileId(req, res);
-  if (profileId === null) return;
+  const profileId = req.profileId;
 
   db.prepare("DELETE FROM profile_recipes WHERE profile_id = ? AND recipe_id = ?").run(
     profileId,

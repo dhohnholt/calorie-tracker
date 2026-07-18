@@ -72,8 +72,8 @@ remaining, protein, logged food by meal, prior-day navigation, pull-to-refresh),
 a Log screen (USDA search, barcode scanning, quantity in grams/ounces/tablespoons/
 food-specific count units like "3 eggs", meal + date, macro preview, recent
 foods to re-log), a Progress screen (latest weight vs. goal, log/replace
-today's weight, recent history), and a Settings screen (profile name, daily
-calorie goal, goal weight, weight unit, height — protein goal is shown as a
+today's weight, recent history), and a Settings screen (account info + log
+out, daily calorie goal, goal weight, weight unit, height — protein goal is shown as a
 computed value derived from goal weight, not a separate setting, matching
 the web app). Plan is still a placeholder. No USDA or Anthropic API key ever
 ships in the mobile app — all such calls stay server-side, proxied through

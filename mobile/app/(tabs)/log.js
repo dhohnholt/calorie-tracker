@@ -21,7 +21,6 @@ import {
   unitConversionFactor,
 } from "calorie-tracker-shared/nutritionScaling.js";
 import { api } from "../../src/api";
-import { useProfiles } from "../../src/profileContext";
 import { useTheme, radii } from "../../src/theme";
 import Screen from "../../src/components/Screen";
 import { LoadingState, EmptyState, ErrorState } from "../../src/components/StateViews";
@@ -44,7 +43,6 @@ function dedupeByDescription(entries, limit = 8) {
 
 export default function LogScreen() {
   const theme = useTheme();
-  const { activeProfileId } = useProfiles();
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState(null);
@@ -78,7 +76,7 @@ export default function LogScreen() {
   useFocusEffect(
     useCallback(() => {
       loadRecent();
-    }, [loadRecent, activeProfileId])
+    }, [loadRecent])
   );
 
   async function handleSearch(queryOverride) {
