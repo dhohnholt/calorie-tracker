@@ -63,6 +63,7 @@ export default function LogScreen() {
   const [proteinOverride, setProteinOverride] = useState("");
   const [carbsOverride, setCarbsOverride] = useState("");
   const [fatOverride, setFatOverride] = useState("");
+  const [fiberOverride, setFiberOverride] = useState("");
 
   const loadRecent = useCallback(async () => {
     try {
@@ -115,6 +116,7 @@ export default function LogScreen() {
     setProteinOverride(String(preview.protein_g));
     setCarbsOverride(String(preview.carbs_g));
     setFatOverride(String(preview.fat_g));
+    setFiberOverride(String(preview.fiber_g));
     setAdjusting(true);
   }
 
@@ -147,6 +149,7 @@ export default function LogScreen() {
             protein_g: Number(proteinOverride) || 0,
             carbs_g: Number(carbsOverride) || 0,
             fat_g: Number(fatOverride) || 0,
+            fiber_g: Number(fiberOverride) || 0,
           }
         : computed;
       const qtyLabel = `${amount}${unit}`;
@@ -393,6 +396,20 @@ export default function LogScreen() {
                       keyboardType="numeric"
                       value={fatOverride}
                       onChangeText={setFatOverride}
+                    />
+                  </View>
+                </View>
+                <View style={styles.adjustFieldRow}>
+                  <View style={styles.adjustField}>
+                    <Text style={[styles.label, { color: theme.textSecondary }]}>Fiber (g)</Text>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        { backgroundColor: theme.pagePlane, color: theme.textPrimary, borderColor: theme.border },
+                      ]}
+                      keyboardType="numeric"
+                      value={fiberOverride}
+                      onChangeText={setFiberOverride}
                     />
                   </View>
                 </View>

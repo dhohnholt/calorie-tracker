@@ -34,6 +34,7 @@ export default function QuickAddFood({ onAdded }) {
   const [manualNotes, setManualNotes] = useState("");
   const [manualCalories, setManualCalories] = useState("");
   const [manualProtein, setManualProtein] = useState("");
+  const [manualFiber, setManualFiber] = useState("");
   const [manualSaving, setManualSaving] = useState(false);
   const [manualError, setManualError] = useState(null);
 
@@ -54,6 +55,7 @@ export default function QuickAddFood({ onAdded }) {
   const [proteinOverride, setProteinOverride] = useState("");
   const [carbsOverride, setCarbsOverride] = useState("");
   const [fatOverride, setFatOverride] = useState("");
+  const [fiberOverride, setFiberOverride] = useState("");
 
   const [recentFoods, setRecentFoods] = useState([]);
   const [reAddingId, setReAddingId] = useState(null);
@@ -127,6 +129,7 @@ export default function QuickAddFood({ onAdded }) {
     setProteinOverride(String(preview.protein_g));
     setCarbsOverride(String(preview.carbs_g));
     setFatOverride(String(preview.fat_g));
+    setFiberOverride(String(preview.fiber_g));
     setAdjusting(true);
   }
 
@@ -154,6 +157,7 @@ export default function QuickAddFood({ onAdded }) {
             protein_g: Number(proteinOverride) || 0,
             carbs_g: Number(carbsOverride) || 0,
             fat_g: Number(fatOverride) || 0,
+            fiber_g: Number(fiberOverride) || 0,
           }
         : computed;
       const qtyLabel = `${amount}${unit}`;
@@ -196,11 +200,13 @@ export default function QuickAddFood({ onAdded }) {
         notes: manualNotes.trim() || null,
         calories: Number(manualCalories) || 0,
         protein_g: Number(manualProtein) || 0,
+        fiber_g: Number(manualFiber) || 0,
       });
       setManualTitle("");
       setManualNotes("");
       setManualCalories("");
       setManualProtein("");
+      setManualFiber("");
       onAdded(date);
       loadRecent();
     } catch (err) {
@@ -270,6 +276,15 @@ export default function QuickAddFood({ onAdded }) {
                 min="0"
                 value={manualProtein}
                 onChange={(e) => setManualProtein(e.target.value)}
+              />
+            </label>
+            <label>
+              Fiber (g, optional)
+              <input
+                type="number"
+                min="0"
+                value={manualFiber}
+                onChange={(e) => setManualFiber(e.target.value)}
               />
             </label>
             <label>
@@ -497,6 +512,15 @@ export default function QuickAddFood({ onAdded }) {
                     min="0"
                     value={fatOverride}
                     onChange={(e) => setFatOverride(e.target.value)}
+                  />
+                </label>
+                <label>
+                  Fiber (g)
+                  <input
+                    type="number"
+                    min="0"
+                    value={fiberOverride}
+                    onChange={(e) => setFiberOverride(e.target.value)}
                   />
                 </label>
               </div>
