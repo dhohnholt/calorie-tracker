@@ -687,6 +687,15 @@ export default function MealPlanPage({ proteinGoal, todayProtein }) {
           onChange={(e) => setGuidance(e.target.value)}
         />
 
+        {aiLoading && (
+          <div className="meal-plan__ai-progress">
+            <div className="meal-plan__ai-progress-track">
+              <div className="meal-plan__ai-progress-bar" />
+            </div>
+            <div className="meal-plan__ai-progress-label">Claude is planning your meals…</div>
+          </div>
+        )}
+
         {aiSpend && (
           <div className="meal-plan__ai-spend">
             Estimated AI spend: {formatUsd(aiSpend.totalCostUsd)} total
