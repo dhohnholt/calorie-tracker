@@ -614,6 +614,29 @@
   text-align: center;
 }
 
+.auth-screen__password-wrap {
+  position: relative;
+}
+
+.auth-screen__password-wrap input {
+  width: 100%;
+  padding-right: 52px;
+}
+
+.auth-screen__password-toggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--series-1);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+
 .auth-screen__error {
   color: var(--status-critical);
   font-size: 13px;

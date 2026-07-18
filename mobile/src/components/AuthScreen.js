@@ -20,6 +20,7 @@ export default function AuthScreen() {
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -76,14 +77,25 @@ export default function AuthScreen() {
             />
 
             <Text style={[styles.label, { color: theme.textSecondary, marginTop: 12 }]}>Password</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: theme.pagePlane, color: theme.textPrimary, borderColor: theme.border }]}
-              placeholder={mode === "signup" ? "At least 8 characters" : "••••••••"}
-              placeholderTextColor={theme.textMuted}
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-            />
+            <View style={styles.passwordWrap}>
+              <TextInput
+                style={[
+                  styles.input,
+                  styles.passwordInput,
+                  { backgroundColor: theme.pagePlane, color: theme.textPrimary, borderColor: theme.border },
+                ]}
+                placeholder={mode === "signup" ? "At least 8 characters" : "••••••••"}
+                placeholderTextColor={theme.textMuted}
+                secureTextEntry={!showPassword}
+                value={password}
+                onChangeText={setPassword}
+              />
+              <Pressable style={styles.passwordToggle} onPress={() => setShowPassword((v) => !v)}>
+                <Text style={{ color: theme.series1, fontSize: 12, fontWeight: "600" }}>
+                  {showPassword ? "Hide" : "Show"}
+                </Text>
+              </Pressable>
+            </View>
 
             {error ? <Text style={{ color: theme.statusCritical, marginTop: 12 }}>{error}</Text> : null}
 
@@ -121,6 +133,9 @@ const styles = StyleSheet.create({
   card: { borderWidth: 1, borderRadius: radii.lg, padding: 20 },
   label: { fontSize: 13, fontWeight: "600" },
   input: { borderWidth: 1, borderRadius: radii.sm, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, marginTop: 6 },
+  passwordWrap: { marginTop: 6 },
+  passwordInput: { marginTop: 0, paddingRight: 56 },
+  passwordToggle: { position: "absolute", right: 10, top: 0, bottom: 0, justifyContent: "center", paddingHorizontal: 4 },
   submitButton: { borderRadius: radii.sm, paddingVertical: 12, alignItems: "center", marginTop: 16 },
   submitButtonText: { color: "#fff", fontWeight: "700" },
   switchLink: { fontSize: 14, fontWeight: "600", textAlign: "center" },

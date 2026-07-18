@@ -7,6 +7,7 @@ export default function AuthScreen({ onAuthenticated }) {
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -61,13 +62,23 @@ export default function AuthScreen({ onAuthenticated }) {
           </label>
           <label>
             Password
-            <input
-              type="password"
-              placeholder={mode === "signup" ? "At least 8 characters" : "••••••••"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <div className="auth-screen__password-wrap">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder={mode === "signup" ? "At least 8 characters" : "••••••••"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <button
+                type="button"
+                className="auth-screen__password-toggle"
+                onClick={() => setShowPassword((v) => !v)}
+                tabIndex={-1}
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </div>
           </label>
 
           {error ? <p className="auth-screen__error">{error}</p> : null}
