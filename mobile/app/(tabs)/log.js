@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   FlatList,
   Pressable,
@@ -25,6 +25,7 @@ import { useTheme, radii } from "../../src/theme";
 import Screen from "../../src/components/Screen";
 import { LoadingState, EmptyState, ErrorState } from "../../src/components/StateViews";
 import BarcodeScanner from "../../src/components/BarcodeScanner";
+import KeyboardDoneAccessory, { NUMERIC_KEYBOARD_ACCESSORY_ID } from "../../src/components/KeyboardDoneAccessory";
 
 const MEAL_LABELS = { breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner", snack: "Snack" };
 
@@ -96,6 +97,15 @@ export default function LogScreen() {
       setSearching(false);
     }
   }
+
+  // Auto-search once there's enough text to be a meaningful query, so
+  // results start appearing without waiting for an explicit submit.
+  useEffect(() => {
+    if (query.trim().length < 3) return;
+    const timer = setTimeout(() => handleSearch(), 350);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
 
   function handleBarcodeScanned(barcode) {
     setScanning(false);
@@ -254,6 +264,7 @@ export default function LogScreen() {
                   { width: 90, backgroundColor: theme.pagePlane, color: theme.textPrimary, borderColor: theme.border },
                 ]}
                 keyboardType="numeric"
+                inputAccessoryViewID={NUMERIC_KEYBOARD_ACCESSORY_ID}
                 value={String(amount)}
                 onChangeText={(t) => setAmount(t.replace(/[^0-9.]/g, ""))}
               />
@@ -356,6 +367,7 @@ export default function LogScreen() {
                         { backgroundColor: theme.pagePlane, color: theme.textPrimary, borderColor: theme.border },
                       ]}
                       keyboardType="numeric"
+                      inputAccessoryViewID={NUMERIC_KEYBOARD_ACCESSORY_ID}
                       value={caloriesOverride}
                       onChangeText={setCaloriesOverride}
                     />
@@ -368,6 +380,7 @@ export default function LogScreen() {
                         { backgroundColor: theme.pagePlane, color: theme.textPrimary, borderColor: theme.border },
                       ]}
                       keyboardType="numeric"
+                      inputAccessoryViewID={NUMERIC_KEYBOARD_ACCESSORY_ID}
                       value={proteinOverride}
                       onChangeText={setProteinOverride}
                     />
@@ -382,6 +395,7 @@ export default function LogScreen() {
                         { backgroundColor: theme.pagePlane, color: theme.textPrimary, borderColor: theme.border },
                       ]}
                       keyboardType="numeric"
+                      inputAccessoryViewID={NUMERIC_KEYBOARD_ACCESSORY_ID}
                       value={carbsOverride}
                       onChangeText={setCarbsOverride}
                     />
@@ -394,6 +408,7 @@ export default function LogScreen() {
                         { backgroundColor: theme.pagePlane, color: theme.textPrimary, borderColor: theme.border },
                       ]}
                       keyboardType="numeric"
+                      inputAccessoryViewID={NUMERIC_KEYBOARD_ACCESSORY_ID}
                       value={fatOverride}
                       onChangeText={setFatOverride}
                     />
@@ -408,6 +423,7 @@ export default function LogScreen() {
                         { backgroundColor: theme.pagePlane, color: theme.textPrimary, borderColor: theme.border },
                       ]}
                       keyboardType="numeric"
+                      inputAccessoryViewID={NUMERIC_KEYBOARD_ACCESSORY_ID}
                       value={fiberOverride}
                       onChangeText={setFiberOverride}
                     />
@@ -479,6 +495,7 @@ export default function LogScreen() {
           />
         )}
       </View>
+      <KeyboardDoneAccessory />
     </Screen>
   );
 }

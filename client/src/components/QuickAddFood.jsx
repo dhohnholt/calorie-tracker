@@ -101,7 +101,7 @@ export default function QuickAddFood({ onAdded }) {
   }
 
   async function handleSearch(e) {
-    e.preventDefault();
+    e?.preventDefault?.();
     if (!query.trim()) return;
     setSearching(true);
     setError(null);
@@ -116,6 +116,15 @@ export default function QuickAddFood({ onAdded }) {
       setSearching(false);
     }
   }
+
+  // Auto-search once there's enough text to be a meaningful query, so
+  // results start appearing without waiting for an explicit submit.
+  useEffect(() => {
+    if (query.trim().length < 3) return;
+    const timer = setTimeout(() => handleSearch(), 350);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
 
   function handleSelect(food) {
     setSelected(food);
