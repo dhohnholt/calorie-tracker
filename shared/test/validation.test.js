@@ -7,9 +7,11 @@ import {
   isPositiveFiniteNumber,
   isNonNegativeFiniteNumber,
   isValidHeightCm,
+  isValidProfileId,
   validateFoodEntry,
   validateWeightEntry,
   validateSettingsUpdate,
+  validateProfile,
 } from "../validation.js";
 
 describe("isValidISODate", () => {
@@ -88,6 +90,38 @@ describe("numeric predicates", () => {
   test("isValidHeightCm rejects out-of-range values", () => {
     assert.equal(isValidHeightCm(10), false);
     assert.equal(isValidHeightCm(400), false);
+  });
+});
+
+describe("isValidProfileId", () => {
+  test("accepts positive integers and numeric strings", () => {
+    assert.equal(isValidProfileId(1), true);
+    assert.equal(isValidProfileId("2"), true);
+  });
+  test("rejects zero, negatives, non-integers, and garbage", () => {
+    assert.equal(isValidProfileId(0), false);
+    assert.equal(isValidProfileId(-1), false);
+    assert.equal(isValidProfileId(1.5), false);
+    assert.equal(isValidProfileId("abc"), false);
+    assert.equal(isValidProfileId(null), false);
+    assert.equal(isValidProfileId(undefined), false);
+  });
+});
+
+describe("validateProfile", () => {
+  test("passes with a valid name", () => {
+    assert.deepEqual(validateProfile({ name: "David" }), []);
+  });
+  test("flags a missing or blank name", () => {
+    assert.ok(validateProfile({}).length > 0);
+    assert.ok(validateProfile({ name: "   " }).length > 0);
+  });
+  test("flags a name over the length limit", () => {
+    const errors = validateProfile({ name: "x".repeat(61) });
+    assert.ok(errors.some((e) => e.includes("60")));
+  });
+  test("allows a name right at the length limit", () => {
+    assert.deepEqual(validateProfile({ name: "x".repeat(60) }), []);
   });
 });
 

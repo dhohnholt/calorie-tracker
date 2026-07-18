@@ -48,6 +48,25 @@ export function isValidHeightCm(value) {
   return n !== null && n >= 50 && n <= 300;
 }
 
+// Profile ids are positive integers, but arrive over HTTP as strings (query
+// params, form fields) as often as real numbers — accept both.
+export function isValidProfileId(value) {
+  const n = toFiniteNumber(value);
+  return n !== null && Number.isInteger(n) && n > 0;
+}
+
+const MAX_PROFILE_NAME_LENGTH = 60;
+
+export function validateProfile(body) {
+  const errors = [];
+  if (typeof body.name !== "string" || !body.name.trim()) {
+    errors.push("name is required");
+  } else if (body.name.trim().length > MAX_PROFILE_NAME_LENGTH) {
+    errors.push(`name must be ${MAX_PROFILE_NAME_LENGTH} characters or fewer`);
+  }
+  return errors;
+}
+
 const NUTRITION_FIELDS = ["protein_g", "carbs_g", "fat_g", "fiber_g", "sugar_g", "sodium_mg"];
 
 // Returns an array of human-readable error strings; empty array means valid.

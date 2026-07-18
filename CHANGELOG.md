@@ -2,6 +2,16 @@
 
 Notable changes to the calorie tracker, newest first. Dates reflect when the work was done, not version tags (this is a personal local project without formal releases).
 
+## 2026-07-17
+
+### Added
+- **Multiple profiles**: the app now supports more than one person sharing a household's data — e.g. a spouse trying the app on the same device/server. A lightweight profile switcher (web: dropdown in the header; mobile: chips in Settings) lets you pick who's currently using the app; there's no password, just a "who's using it right now" selector. Food entries, weight entries, favorite foods, weekly meal plans, and personal settings (calorie goal, goal weight, weight unit, height) are fully isolated per profile. AI spend tracking stays shared across the whole household, since it's an account-level cost, not personal data.
+- **Shared recipe library**: recipes are no longer siloed per profile. Any recipe anyone adds becomes visible to every profile in a shared library; each profile then adds the ones they want to their own "Saved recipes" and rates them independently (removing a recipe from your list doesn't delete it from the library or from anyone else's collection). The Meal Plan page's "Saved recipes" card now shows your personal collection plus a "Recipe library" section below it for browsing and adding recipes someone else in the household saved.
+- Existing local data is migrated automatically and losslessly into a default profile (named after whatever was in the old single "Your name" setting, or "Me") the first time the server starts after upgrading — no manual steps required.
+
+### Changed
+- The old single "Your name" field in Settings is gone, replaced by the profile switcher — names are now managed per-profile via "+ Add profile" instead of a free-text settings field.
+
 ## 2026-07-16
 
 ### Added

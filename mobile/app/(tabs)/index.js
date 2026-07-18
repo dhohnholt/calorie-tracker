@@ -5,6 +5,7 @@ import { todayISO, timeGreeting, parseISODate, toISODate, formatShortDate } from
 import { proteinGoalGrams } from "calorie-tracker-shared/bodyMetrics.js";
 import { MEAL_TYPES } from "calorie-tracker-shared/validation.js";
 import { api } from "../../src/api";
+import { useProfiles } from "../../src/profileContext";
 import { useTheme, radii } from "../../src/theme";
 import Screen from "../../src/components/Screen";
 import { LoadingState, ErrorState, EmptyState } from "../../src/components/StateViews";
@@ -25,6 +26,7 @@ function dateLabel(iso) {
 
 export default function TodayScreen() {
   const theme = useTheme();
+  const { activeProfileId, activeProfile } = useProfiles();
   const [date, setDate] = useState(todayISO());
   const [settings, setSettings] = useState(null);
   const [totals, setTotals] = useState(null);
@@ -57,7 +59,7 @@ export default function TodayScreen() {
   useFocusEffect(
     useCallback(() => {
       load(date);
-    }, [load, date])
+    }, [load, date, activeProfileId])
   );
 
   function handleDelete(entry) {
@@ -102,7 +104,7 @@ export default function TodayScreen() {
   const proteinGoal = proteinGoalGrams(goalWeight, settings.weight_unit);
   const consumed = Math.round(totals.calories || 0);
   const remaining = calorieGoal - consumed;
-  const profileName = settings.profile_name?.trim();
+  const profileName = activeProfile?.name;
   const isToday = date === todayISO();
 
   const groups = MEAL_TYPES.map((meal) => ({

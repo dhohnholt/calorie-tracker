@@ -2,7 +2,6 @@ import { useState } from "react";
 import { cmToIn, inToCm } from "../bodyMetrics";
 
 export default function SettingsModal({ settings, onSave, onClose }) {
-  const [profileName, setProfileName] = useState(settings.profile_name || "");
   const [calorieGoal, setCalorieGoal] = useState(settings.calorie_goal);
   const [goalWeight, setGoalWeight] = useState(settings.goal_weight);
   const [weightUnit, setWeightUnit] = useState(settings.weight_unit);
@@ -25,7 +24,6 @@ export default function SettingsModal({ settings, onSave, onClose }) {
   function handleSubmit(e) {
     e.preventDefault();
     onSave({
-      profile_name: profileName,
       calorie_goal: calorieGoal,
       goal_weight: goalWeight,
       weight_unit: weightUnit,
@@ -38,15 +36,6 @@ export default function SettingsModal({ settings, onSave, onClose }) {
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <h2>Settings</h2>
         <form onSubmit={handleSubmit} className="settings-form">
-          <label>
-            Your name
-            <input
-              type="text"
-              placeholder="e.g. David"
-              value={profileName}
-              onChange={(e) => setProfileName(e.target.value)}
-            />
-          </label>
           <label>
             Daily calorie goal
             <input

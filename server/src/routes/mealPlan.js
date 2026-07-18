@@ -7,15 +7,18 @@ const router = Router();
 const INPUT_COST_PER_TOKEN = 1.0 / 1_000_000;
 const OUTPUT_COST_PER_TOKEN = 5.0 / 1_000_000;
 
+// AI spend tracking is global (about the household's Anthropic bill, not
+// per-person data) — always profile_id 0, same sentinel used everywhere else
+// for shared settings.
 function getSetting(key) {
-  const row = db.prepare("SELECT value FROM settings WHERE key = ?").get(key);
+  const row = db.prepare("SELECT value FROM settings WHERE profile_id = 0 AND key = ?").get(key);
   return row ? parseFloat(row.value) || 0 : 0;
 }
 
 function setSetting(key, value) {
   db.prepare(
-    `INSERT INTO settings (key, value) VALUES (?, ?)
-     ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+    `INSERT INTO settings (profile_id, key, value) VALUES (0, ?, ?)
+     ON CONFLICT(profile_id, key) DO UPDATE SET value = excluded.value`
   ).run(key, String(value));
 }
 

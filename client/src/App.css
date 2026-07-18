@@ -71,6 +71,21 @@
   color: white;
 }
 
+.profile-switcher {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  border-radius: var(--radius-md);
+  padding: 7px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.profile-switcher--add-only {
+  color: var(--text-secondary);
+}
+
 .hero-banner {
   display: flex;
   align-items: center;
@@ -1159,6 +1174,17 @@
 
 .meal-plan__recipe-chip-name--link:hover {
   text-decoration-color: currentColor;
+}
+
+.meal-plan__subheading {
+  margin: 20px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.meal-plan__recipe-chip--library {
+  cursor: default;
 }
 
 .meal-plan__recipe-chip-stars {

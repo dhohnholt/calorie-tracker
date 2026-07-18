@@ -193,10 +193,15 @@ export default function MealPlanPage({ proteinGoal, todayProtein }) {
     }
   }
 
-  async function handleDeleteRecipe(id) {
-    await api.deleteRecipe(id);
-    setRecipes((prev) => prev.filter((r) => r.id !== id));
+  async function handleRemoveFromCollection(id) {
+    await api.removeRecipeFromCollection(id);
+    setRecipes((prev) => prev.map((r) => (r.id === id ? { ...r, inMyCollection: false } : r)));
     setSelectedRecipeIds((prev) => prev.filter((x) => x !== id));
+  }
+
+  async function handleAddToCollection(id) {
+    const updated = await api.addRecipeToCollection(id);
+    setRecipes((prev) => prev.map((r) => (r.id === id ? updated : r)));
   }
 
   async function handleRateRecipe(id, rating) {
@@ -208,7 +213,9 @@ export default function MealPlanPage({ proteinGoal, todayProtein }) {
     );
   }
 
-  const selectedRecipes = recipes.filter((r) => selectedRecipeIds.includes(r.id));
+  const myRecipes = recipes.filter((r) => r.inMyCollection);
+  const libraryOnlyRecipes = recipes.filter((r) => !r.inMyCollection);
+  const selectedRecipes = myRecipes.filter((r) => selectedRecipeIds.includes(r.id));
   const favoriteFoodNames = favoriteFoods.map((f) => f.name);
 
   async function handleGenerateAI() {
@@ -537,14 +544,15 @@ export default function MealPlanPage({ proteinGoal, todayProtein }) {
           </form>
         )}
 
-        {recipes.length === 0 ? (
+        {myRecipes.length === 0 ? (
           <div className="meal-plan__hint">
             No saved recipes yet. Add one above (great for batch-cooked meals with known
-            nutrition, like a soup you've already calculated).
+            nutrition, like a soup you've already calculated), or add one from the recipe
+            library below.
           </div>
         ) : (
           <div className="meal-plan__chips">
-            {recipes.map((r) => {
+            {myRecipes.map((r) => {
               const videoUrl = r.video_url || extractVideoUrl(r.notes);
               return (
                 <label key={r.id} className="meal-plan__recipe-chip">
@@ -604,8 +612,9 @@ export default function MealPlanPage({ proteinGoal, todayProtein }) {
                   <button
                     type="button"
                     className="meal-plan__chip-remove"
-                    onClick={() => handleDeleteRecipe(r.id)}
-                    aria-label={`Delete ${r.name}`}
+                    onClick={() => handleRemoveFromCollection(r.id)}
+                    aria-label={`Remove ${r.name} from my recipes`}
+                    title="Remove from my recipes (stays in the shared library)"
                   >
                     ×
                   </button>
@@ -613,6 +622,39 @@ export default function MealPlanPage({ proteinGoal, todayProtein }) {
               );
             })}
           </div>
+        )}
+
+        {libraryOnlyRecipes.length > 0 && (
+          <>
+            <h3 className="meal-plan__subheading">Recipe library</h3>
+            <div className="meal-plan__hint">
+              Recipes added by anyone in the household. Add one to your personal list to use it
+              in meal planning.
+            </div>
+            <div className="meal-plan__chips">
+              {libraryOnlyRecipes.map((r) => (
+                <div key={r.id} className="meal-plan__recipe-chip meal-plan__recipe-chip--library">
+                  <button
+                    type="button"
+                    className="meal-plan__recipe-chip-name meal-plan__recipe-chip-name--link"
+                    onClick={() => setViewingRecipe(r)}
+                  >
+                    {r.name}
+                  </button>
+                  <span className="meal-plan__recipe-chip-macros tabular">
+                    {r.protein_g}g protein · {r.calories} kcal
+                  </span>
+                  <button
+                    type="button"
+                    className="button-secondary"
+                    onClick={() => handleAddToCollection(r.id)}
+                  >
+                    + Add to my recipes
+                  </button>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
@@ -754,7 +796,7 @@ export default function MealPlanPage({ proteinGoal, todayProtein }) {
             {addPlanSource === "recipe" && (
               <select value={addPlanRecipeId} onChange={(e) => setAddPlanRecipeId(e.target.value)}>
                 <option value="">Choose a saved recipe…</option>
-                {recipes.map((r) => (
+                {myRecipes.map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.name} ({r.protein_g}g protein · {r.calories} kcal)
                   </option>

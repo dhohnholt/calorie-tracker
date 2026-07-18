@@ -1,3 +1,5 @@
+import { getCurrentProfileId } from "./profile.js";
+
 const BASE = "/api";
 
 async function request(path, options) {
@@ -13,24 +15,51 @@ async function request(path, options) {
   return resp.json();
 }
 
+// Merges the active profile into a params object for building a query
+// string. Every profile-scoped endpoint (all of them except /profiles
+// itself and stateless ones like nutrition search) needs this — the server
+// checks both query params and the request body, so appending it here works
+// for GET/DELETE and POST/PUT alike.
+function withProfile(params = {}) {
+  return { ...params, profile_id: getCurrentProfileId() };
+}
+
 export const api = {
-  getSettings: () => request("/settings"),
+  getProfiles: () => request("/profiles"),
+  createProfile: (name) => request("/profiles", { method: "POST", body: JSON.stringify({ name }) }),
+
+  getSettings: () => request(`/settings?${new URLSearchParams(withProfile())}`),
   updateSettings: (settings) =>
-    request("/settings", { method: "PUT", body: JSON.stringify(settings) }),
+    request(`/settings?${new URLSearchParams(withProfile())}`, {
+      method: "PUT",
+      body: JSON.stringify(settings),
+    }),
 
-  getFoodEntries: (params) => request(`/food-entries?${new URLSearchParams(params)}`),
+  getFoodEntries: (params) => request(`/food-entries?${new URLSearchParams(withProfile(params))}`),
   createFoodEntry: (entry) =>
-    request("/food-entries", { method: "POST", body: JSON.stringify(entry) }),
+    request(`/food-entries?${new URLSearchParams(withProfile())}`, {
+      method: "POST",
+      body: JSON.stringify(entry),
+    }),
   updateFoodEntry: (id, entry) =>
-    request(`/food-entries/${id}`, { method: "PUT", body: JSON.stringify(entry) }),
-  deleteFoodEntry: (id) => request(`/food-entries/${id}`, { method: "DELETE" }),
+    request(`/food-entries/${id}?${new URLSearchParams(withProfile())}`, {
+      method: "PUT",
+      body: JSON.stringify(entry),
+    }),
+  deleteFoodEntry: (id) =>
+    request(`/food-entries/${id}?${new URLSearchParams(withProfile())}`, { method: "DELETE" }),
 
-  getWeightEntries: (params) => request(`/weight-entries?${new URLSearchParams(params)}`),
+  getWeightEntries: (params) => request(`/weight-entries?${new URLSearchParams(withProfile(params))}`),
   createWeightEntry: (entry) =>
-    request("/weight-entries", { method: "POST", body: JSON.stringify(entry) }),
-  deleteWeightEntry: (id) => request(`/weight-entries/${id}`, { method: "DELETE" }),
+    request(`/weight-entries?${new URLSearchParams(withProfile())}`, {
+      method: "POST",
+      body: JSON.stringify(entry),
+    }),
+  deleteWeightEntry: (id) =>
+    request(`/weight-entries/${id}?${new URLSearchParams(withProfile())}`, { method: "DELETE" }),
 
-  getDailySummary: (start, end) => request(`/summary/daily?start=${start}&end=${end}`),
+  getDailySummary: (start, end) =>
+    request(`/summary/daily?${new URLSearchParams(withProfile({ start, end }))}`),
 
   searchNutrition: (q) => request(`/nutrition/search?q=${encodeURIComponent(q)}`),
 
@@ -40,24 +69,46 @@ export const api = {
       body: JSON.stringify({ favoriteFoods, targetProteinG, planScope, recipes, guidance }),
     }),
 
-  getRecipes: () => request("/recipes"),
+  getRecipes: () => request(`/recipes?${new URLSearchParams(withProfile())}`),
   createRecipe: (recipe) =>
-    request("/recipes", { method: "POST", body: JSON.stringify(recipe) }),
-  deleteRecipe: (id) => request(`/recipes/${id}`, { method: "DELETE" }),
+    request(`/recipes?${new URLSearchParams(withProfile())}`, {
+      method: "POST",
+      body: JSON.stringify(recipe),
+    }),
+  addRecipeToCollection: (id) =>
+    request(`/recipes/${id}/add?${new URLSearchParams(withProfile())}`, { method: "POST" }),
+  removeRecipeFromCollection: (id) =>
+    request(`/recipes/${id}?${new URLSearchParams(withProfile())}`, { method: "DELETE" }),
   rateRecipe: (id, rating) =>
-    request(`/recipes/${id}/rating`, { method: "PUT", body: JSON.stringify({ rating }) }),
+    request(`/recipes/${id}/rating?${new URLSearchParams(withProfile())}`, {
+      method: "PUT",
+      body: JSON.stringify({ rating }),
+    }),
 
-  getFavoriteFoods: () => request("/favorite-foods"),
+  getFavoriteFoods: () => request(`/favorite-foods?${new URLSearchParams(withProfile())}`),
   createFavoriteFood: (name, category) =>
-    request("/favorite-foods", { method: "POST", body: JSON.stringify({ name, category }) }),
-  deleteFavoriteFood: (id) => request(`/favorite-foods/${id}`, { method: "DELETE" }),
+    request(`/favorite-foods?${new URLSearchParams(withProfile())}`, {
+      method: "POST",
+      body: JSON.stringify({ name, category }),
+    }),
+  deleteFavoriteFood: (id) =>
+    request(`/favorite-foods/${id}?${new URLSearchParams(withProfile())}`, { method: "DELETE" }),
 
-  getWeeklyPlan: () => request("/weekly-plan"),
+  getWeeklyPlan: () => request(`/weekly-plan?${new URLSearchParams(withProfile())}`),
   saveWeeklyPlanDay: (day, plan) =>
-    request(`/weekly-plan/${day}`, { method: "PUT", body: JSON.stringify(plan) }),
-  deleteWeeklyPlanDay: (day) => request(`/weekly-plan/${day}`, { method: "DELETE" }),
+    request(`/weekly-plan/${day}?${new URLSearchParams(withProfile())}`, {
+      method: "PUT",
+      body: JSON.stringify(plan),
+    }),
+  deleteWeeklyPlanDay: (day) =>
+    request(`/weekly-plan/${day}?${new URLSearchParams(withProfile())}`, { method: "DELETE" }),
   addItemToDay: (day, payload) =>
-    request(`/weekly-plan/${day}/item`, { method: "POST", body: JSON.stringify(payload) }),
+    request(`/weekly-plan/${day}/item?${new URLSearchParams(withProfile())}`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
   removeWeeklyPlanItem: (day, index) =>
-    request(`/weekly-plan/${day}/items/${index}`, { method: "DELETE" }),
+    request(`/weekly-plan/${day}/items/${index}?${new URLSearchParams(withProfile())}`, {
+      method: "DELETE",
+    }),
 };

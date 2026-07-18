@@ -1,33 +1,40 @@
 import { Router } from "express";
 import { db } from "../db.js";
 import { validateFoodEntry } from "../../../shared/validation.js";
+import { requireProfileId } from "../profileScope.js";
 
 const router = Router();
 
 router.get("/", (req, res) => {
+  const profileId = requireProfileId(req, res);
+  if (profileId === null) return;
+
   const { date, start, end } = req.query;
 
   let rows;
   if (date) {
     rows = db
-      .prepare("SELECT * FROM food_entries WHERE date = ? ORDER BY logged_at ASC")
-      .all(date);
+      .prepare("SELECT * FROM food_entries WHERE profile_id = ? AND date = ? ORDER BY logged_at ASC")
+      .all(profileId, date);
   } else if (start && end) {
     rows = db
       .prepare(
-        "SELECT * FROM food_entries WHERE date BETWEEN ? AND ? ORDER BY date ASC, logged_at ASC"
+        "SELECT * FROM food_entries WHERE profile_id = ? AND date BETWEEN ? AND ? ORDER BY date ASC, logged_at ASC"
       )
-      .all(start, end);
+      .all(profileId, start, end);
   } else {
     rows = db
-      .prepare("SELECT * FROM food_entries ORDER BY date DESC, logged_at DESC LIMIT 200")
-      .all();
+      .prepare("SELECT * FROM food_entries WHERE profile_id = ? ORDER BY date DESC, logged_at DESC LIMIT 200")
+      .all(profileId);
   }
 
   res.json(rows.map(deserialize));
 });
 
 router.post("/", (req, res) => {
+  const profileId = requireProfileId(req, res);
+  if (profileId === null) return;
+
   const errors = validateFoodEntry(req.body);
   if (errors.length > 0) {
     return res.status(400).json({ error: errors.join("; ") });
@@ -52,10 +59,11 @@ router.post("/", (req, res) => {
   const result = db
     .prepare(
       `INSERT INTO food_entries
-        (date, meal, description, notes, calories, protein_g, carbs_g, fat_g, fiber_g, sugar_g, sodium_mg, items_json, logged_at)
-       VALUES (@date, @meal, @description, @notes, @calories, @protein_g, @carbs_g, @fat_g, @fiber_g, @sugar_g, @sodium_mg, @items_json, @logged_at)`
+        (profile_id, date, meal, description, notes, calories, protein_g, carbs_g, fat_g, fiber_g, sugar_g, sodium_mg, items_json, logged_at)
+       VALUES (@profile_id, @date, @meal, @description, @notes, @calories, @protein_g, @carbs_g, @fat_g, @fiber_g, @sugar_g, @sodium_mg, @items_json, @logged_at)`
     )
     .run({
+      profile_id: profileId,
       date,
       meal,
       description,
@@ -76,7 +84,12 @@ router.post("/", (req, res) => {
 });
 
 router.put("/:id", (req, res) => {
-  const existing = db.prepare("SELECT * FROM food_entries WHERE id = ?").get(req.params.id);
+  const profileId = requireProfileId(req, res);
+  if (profileId === null) return;
+
+  const existing = db
+    .prepare("SELECT * FROM food_entries WHERE id = ? AND profile_id = ?")
+    .get(req.params.id, profileId);
   if (!existing) return res.status(404).json({ error: "not found" });
 
   const merged = { ...existing, ...req.body };
@@ -93,15 +106,18 @@ router.put("/:id", (req, res) => {
       protein_g = @protein_g, carbs_g = @carbs_g, fat_g = @fat_g,
       fiber_g = @fiber_g, sugar_g = @sugar_g, sodium_mg = @sodium_mg,
       items_json = @items_json
-     WHERE id = @id`
-  ).run(merged);
+     WHERE id = @id AND profile_id = @profile_id`
+  ).run({ ...merged, profile_id: profileId });
 
   const row = db.prepare("SELECT * FROM food_entries WHERE id = ?").get(req.params.id);
   res.json(deserialize(row));
 });
 
 router.delete("/:id", (req, res) => {
-  db.prepare("DELETE FROM food_entries WHERE id = ?").run(req.params.id);
+  const profileId = requireProfileId(req, res);
+  if (profileId === null) return;
+
+  db.prepare("DELETE FROM food_entries WHERE id = ? AND profile_id = ?").run(req.params.id, profileId);
   res.status(204).end();
 });
 

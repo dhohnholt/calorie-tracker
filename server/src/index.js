@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import "./db.js";
 
+import profilesRouter from "./routes/profiles.js";
 import foodEntriesRouter from "./routes/foodEntries.js";
 import weightEntriesRouter from "./routes/weightEntries.js";
 import summaryRouter from "./routes/summary.js";
@@ -17,6 +18,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.use("/api/profiles", profilesRouter);
 app.use("/api/food-entries", foodEntriesRouter);
 app.use("/api/weight-entries", weightEntriesRouter);
 app.use("/api/summary", summaryRouter);

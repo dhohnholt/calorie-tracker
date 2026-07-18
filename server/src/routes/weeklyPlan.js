@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { db } from "../db.js";
+import { requireProfileId } from "../profileScope.js";
 
 const router = Router();
 
@@ -19,11 +20,17 @@ function totals(items) {
 }
 
 router.get("/", (req, res) => {
-  const rows = db.prepare("SELECT * FROM weekly_meal_plans").all();
+  const profileId = requireProfileId(req, res);
+  if (profileId === null) return;
+
+  const rows = db.prepare("SELECT * FROM weekly_meal_plans WHERE profile_id = ?").all(profileId);
   res.json(rows.map(deserialize));
 });
 
 router.put("/:day", (req, res) => {
+  const profileId = requireProfileId(req, res);
+  if (profileId === null) return;
+
   const { day } = req.params;
   if (!DAYS.includes(day)) {
     return res.status(400).json({ error: `day must be one of ${DAYS.join(", ")}` });
@@ -36,15 +43,16 @@ router.put("/:day", (req, res) => {
 
   const created_at = new Date().toISOString();
   db.prepare(
-    `INSERT INTO weekly_meal_plans (day_of_week, source, items_json, total_protein_g, total_calories, created_at)
-     VALUES (@day, @source, @items_json, @total_protein_g, @total_calories, @created_at)
-     ON CONFLICT(day_of_week) DO UPDATE SET
+    `INSERT INTO weekly_meal_plans (profile_id, day_of_week, source, items_json, total_protein_g, total_calories, created_at)
+     VALUES (@profile_id, @day, @source, @items_json, @total_protein_g, @total_calories, @created_at)
+     ON CONFLICT(profile_id, day_of_week) DO UPDATE SET
        source = excluded.source,
        items_json = excluded.items_json,
        total_protein_g = excluded.total_protein_g,
        total_calories = excluded.total_calories,
        created_at = excluded.created_at`
   ).run({
+    profile_id: profileId,
     day,
     source,
     items_json: JSON.stringify(items),
@@ -53,11 +61,16 @@ router.put("/:day", (req, res) => {
     created_at,
   });
 
-  const row = db.prepare("SELECT * FROM weekly_meal_plans WHERE day_of_week = ?").get(day);
+  const row = db
+    .prepare("SELECT * FROM weekly_meal_plans WHERE profile_id = ? AND day_of_week = ?")
+    .get(profileId, day);
   res.status(201).json(deserialize(row));
 });
 
 router.post("/:day/item", (req, res) => {
+  const profileId = requireProfileId(req, res);
+  if (profileId === null) return;
+
   const { day } = req.params;
   if (!DAYS.includes(day)) {
     return res.status(400).json({ error: `day must be one of ${DAYS.join(", ")}` });
@@ -94,7 +107,9 @@ router.post("/:day/item", (req, res) => {
     };
   }
 
-  const existing = db.prepare("SELECT * FROM weekly_meal_plans WHERE day_of_week = ?").get(day);
+  const existing = db
+    .prepare("SELECT * FROM weekly_meal_plans WHERE profile_id = ? AND day_of_week = ?")
+    .get(profileId, day);
   const items = existing ? JSON.parse(existing.items_json) : [];
   items.push(newItem);
 
@@ -102,13 +117,14 @@ router.post("/:day/item", (req, res) => {
   const created_at = existing?.created_at || new Date().toISOString();
 
   db.prepare(
-    `INSERT INTO weekly_meal_plans (day_of_week, source, items_json, total_protein_g, total_calories, created_at)
-     VALUES (@day, @source, @items_json, @total_protein_g, @total_calories, @created_at)
-     ON CONFLICT(day_of_week) DO UPDATE SET
+    `INSERT INTO weekly_meal_plans (profile_id, day_of_week, source, items_json, total_protein_g, total_calories, created_at)
+     VALUES (@profile_id, @day, @source, @items_json, @total_protein_g, @total_calories, @created_at)
+     ON CONFLICT(profile_id, day_of_week) DO UPDATE SET
        items_json = excluded.items_json,
        total_protein_g = excluded.total_protein_g,
        total_calories = excluded.total_calories`
   ).run({
+    profile_id: profileId,
     day,
     source: existing?.source || "manual",
     items_json: JSON.stringify(items),
@@ -117,17 +133,24 @@ router.post("/:day/item", (req, res) => {
     created_at,
   });
 
-  const row = db.prepare("SELECT * FROM weekly_meal_plans WHERE day_of_week = ?").get(day);
+  const row = db
+    .prepare("SELECT * FROM weekly_meal_plans WHERE profile_id = ? AND day_of_week = ?")
+    .get(profileId, day);
   res.status(201).json(deserialize(row));
 });
 
 router.delete("/:day/items/:index", (req, res) => {
+  const profileId = requireProfileId(req, res);
+  if (profileId === null) return;
+
   const { day, index } = req.params;
   if (!DAYS.includes(day)) {
     return res.status(400).json({ error: `day must be one of ${DAYS.join(", ")}` });
   }
 
-  const existing = db.prepare("SELECT * FROM weekly_meal_plans WHERE day_of_week = ?").get(day);
+  const existing = db
+    .prepare("SELECT * FROM weekly_meal_plans WHERE profile_id = ? AND day_of_week = ?")
+    .get(profileId, day);
   if (!existing) {
     return res.status(404).json({ error: "no plan for this day" });
   }
@@ -140,21 +163,29 @@ router.delete("/:day/items/:index", (req, res) => {
   items.splice(idx, 1);
 
   if (items.length === 0) {
-    db.prepare("DELETE FROM weekly_meal_plans WHERE day_of_week = ?").run(day);
+    db.prepare("DELETE FROM weekly_meal_plans WHERE profile_id = ? AND day_of_week = ?").run(profileId, day);
     return res.status(204).end();
   }
 
   const { total_protein_g, total_calories } = totals(items);
   db.prepare(
-    "UPDATE weekly_meal_plans SET items_json = ?, total_protein_g = ?, total_calories = ? WHERE day_of_week = ?"
-  ).run(JSON.stringify(items), total_protein_g, total_calories, day);
+    "UPDATE weekly_meal_plans SET items_json = ?, total_protein_g = ?, total_calories = ? WHERE profile_id = ? AND day_of_week = ?"
+  ).run(JSON.stringify(items), total_protein_g, total_calories, profileId, day);
 
-  const row = db.prepare("SELECT * FROM weekly_meal_plans WHERE day_of_week = ?").get(day);
+  const row = db
+    .prepare("SELECT * FROM weekly_meal_plans WHERE profile_id = ? AND day_of_week = ?")
+    .get(profileId, day);
   res.json(deserialize(row));
 });
 
 router.delete("/:day", (req, res) => {
-  db.prepare("DELETE FROM weekly_meal_plans WHERE day_of_week = ?").run(req.params.day);
+  const profileId = requireProfileId(req, res);
+  if (profileId === null) return;
+
+  db.prepare("DELETE FROM weekly_meal_plans WHERE profile_id = ? AND day_of_week = ?").run(
+    profileId,
+    req.params.day
+  );
   res.status(204).end();
 });
 

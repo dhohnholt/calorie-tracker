@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api";
+import { getCurrentProfileId, setCurrentProfileId } from "./profile";
 import { daysAgoISO, todayISO, eachDateInRange, timeGreeting } from "./dates";
 import { proteinGoalGrams } from "./bodyMetrics";
 import QuickAddFood from "./components/QuickAddFood";
@@ -28,6 +29,11 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const toastTimeout = useRef(null);
 
+  const [profiles, setProfiles] = useState([]);
+  const [activeProfileId, setActiveProfileId] = useState(null);
+  const [showAddProfile, setShowAddProfile] = useState(false);
+  const [newProfileName, setNewProfileName] = useState("");
+
   function showToast(message, type = "success") {
     clearTimeout(toastTimeout.current);
     setToast({ message, type });
@@ -55,12 +61,40 @@ export default function App() {
   }
 
   useEffect(() => {
-    loadAll();
+    api.getProfiles().then((list) => {
+      setProfiles(list);
+      const stored = getCurrentProfileId();
+      const initial = list.some((p) => p.id === stored) ? stored : list[0]?.id ?? null;
+      if (initial) setCurrentProfileId(initial);
+      setActiveProfileId(initial);
+    });
   }, []);
 
   useEffect(() => {
+    if (!activeProfileId) return;
+    setLoading(true);
+    loadAll();
+  }, [activeProfileId]);
+
+  useEffect(() => {
+    if (!activeProfileId) return;
     loadSelectedDateEntries(selectedDate);
-  }, [selectedDate]);
+  }, [selectedDate, activeProfileId]);
+
+  function handleSwitchProfile(id) {
+    setCurrentProfileId(id);
+    setActiveProfileId(id);
+  }
+
+  async function handleAddProfile(e) {
+    e.preventDefault();
+    if (!newProfileName.trim()) return;
+    const created = await api.createProfile(newProfileName.trim());
+    setProfiles((prev) => [...prev, created]);
+    setNewProfileName("");
+    setShowAddProfile(false);
+    handleSwitchProfile(created.id);
+  }
 
   const chartData = useMemo(() => {
     const byDate = Object.fromEntries(dailySummary.map((d) => [d.date, d]));
@@ -126,14 +160,14 @@ export default function App() {
     showToast("Settings saved");
   }
 
-  if (loading || !settings) {
+  if (loading || !settings || !activeProfileId) {
     return <LoadingSkeleton />;
   }
 
   const calorieGoal = Number(settings.calorie_goal);
   const goalWeight = Number(settings.goal_weight);
   const weightUnit = settings.weight_unit;
-  const profileName = settings.profile_name?.trim();
+  const profileName = profiles.find((p) => p.id === activeProfileId)?.name;
   const heightCm = settings.height_cm ? Number(settings.height_cm) : null;
   const proteinGoal = proteinGoalGrams(goalWeight, weightUnit);
 
@@ -154,6 +188,31 @@ export default function App() {
             Meal Plan
           </button>
         </nav>
+        {profiles.length > 1 ? (
+          <select
+            className="profile-switcher"
+            value={activeProfileId}
+            onChange={(e) =>
+              e.target.value === "__add__"
+                ? setShowAddProfile(true)
+                : handleSwitchProfile(Number(e.target.value))
+            }
+          >
+            {profiles.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+            <option value="__add__">+ Add profile…</option>
+          </select>
+        ) : (
+          <button
+            className="profile-switcher profile-switcher--add-only"
+            onClick={() => setShowAddProfile(true)}
+          >
+            + Add profile
+          </button>
+        )}
         <button
           className="icon-button icon-button--settings"
           onClick={() => setShowSettings(true)}
@@ -209,6 +268,34 @@ export default function App() {
           onSave={handleSaveSettings}
           onClose={() => setShowSettings(false)}
         />
+      )}
+
+      {showAddProfile && (
+        <div className="modal-backdrop" onClick={() => setShowAddProfile(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Add profile</h2>
+            <form onSubmit={handleAddProfile} className="settings-form">
+              <label>
+                Name
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="e.g. Sarah"
+                  value={newProfileName}
+                  onChange={(e) => setNewProfileName(e.target.value)}
+                />
+              </label>
+              <div className="modal-actions">
+                <button type="button" className="button-secondary" onClick={() => setShowAddProfile(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="button-primary">
+                  Add
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       <Toast toast={toast} />

@@ -3,12 +3,14 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, Vie
 import { useFocusEffect } from "expo-router";
 import { todayISO, daysAgoISO, formatShortDate } from "calorie-tracker-shared/dates.js";
 import { api } from "../../src/api";
+import { useProfiles } from "../../src/profileContext";
 import { useTheme, radii } from "../../src/theme";
 import Screen from "../../src/components/Screen";
 import { LoadingState, ErrorState, EmptyState } from "../../src/components/StateViews";
 
 export default function ProgressScreen() {
   const theme = useTheme();
+  const { activeProfileId } = useProfiles();
   const [entries, setEntries] = useState([]);
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -40,7 +42,7 @@ export default function ProgressScreen() {
   useFocusEffect(
     useCallback(() => {
       load();
-    }, [load])
+    }, [load, activeProfileId])
   );
 
   async function handleLogWeight() {

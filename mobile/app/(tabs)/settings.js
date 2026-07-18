@@ -3,19 +3,25 @@ import { Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } fro
 import { useFocusEffect } from "expo-router";
 import { cmToIn, inToCm, proteinGoalGrams } from "calorie-tracker-shared/bodyMetrics.js";
 import { api, API_BASE_URL } from "../../src/api";
+import { useProfiles } from "../../src/profileContext";
 import { useTheme, radii } from "../../src/theme";
 import Screen from "../../src/components/Screen";
 import { LoadingState, ErrorState } from "../../src/components/StateViews";
 
 export default function SettingsScreen() {
   const theme = useTheme();
+  const { profiles, activeProfileId, switchProfile, addProfile } = useProfiles();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
   const [savedMessage, setSavedMessage] = useState(null);
 
-  const [profileName, setProfileName] = useState("");
+  const [showAddProfile, setShowAddProfile] = useState(false);
+  const [newProfileName, setNewProfileName] = useState("");
+  const [addingProfile, setAddingProfile] = useState(false);
+  const [addProfileError, setAddProfileError] = useState(null);
+
   const [calorieGoal, setCalorieGoal] = useState("");
   const [goalWeight, setGoalWeight] = useState("");
   const [weightUnit, setWeightUnit] = useState("lbs");
@@ -26,7 +32,6 @@ export default function SettingsScreen() {
     setError(null);
     try {
       const settings = await api.getSettings();
-      setProfileName(settings.profile_name || "");
       setCalorieGoal(settings.calorie_goal != null ? String(settings.calorie_goal) : "");
       setGoalWeight(settings.goal_weight != null ? String(settings.goal_weight) : "");
       const unit = settings.weight_unit || "lbs";
@@ -47,8 +52,23 @@ export default function SettingsScreen() {
   useFocusEffect(
     useCallback(() => {
       load();
-    }, [load])
+    }, [load, activeProfileId])
   );
+
+  async function handleAddProfile() {
+    if (!newProfileName.trim()) return;
+    setAddingProfile(true);
+    setAddProfileError(null);
+    try {
+      await addProfile(newProfileName.trim());
+      setNewProfileName("");
+      setShowAddProfile(false);
+    } catch (err) {
+      setAddProfileError(err.message);
+    } finally {
+      setAddingProfile(false);
+    }
+  }
 
   function handleUnitChange(newUnit) {
     if (newUnit === weightUnit) return;
@@ -70,7 +90,6 @@ export default function SettingsScreen() {
       const heightNum = heightInput === "" ? null : Number(heightInput);
       const heightCm = heightNum == null ? "" : weightUnit === "kg" ? heightNum : inToCm(heightNum);
       await api.updateSettings({
-        profile_name: profileName,
         calorie_goal: calorieGoal,
         goal_weight: goalWeight,
         weight_unit: weightUnit,
@@ -108,16 +127,63 @@ export default function SettingsScreen() {
         <Text style={[styles.title, { color: theme.textPrimary }]}>Settings</Text>
 
         <View style={[styles.card, { backgroundColor: theme.surface1, borderColor: theme.border }]}>
-          <Text style={[styles.label, { color: theme.textSecondary }]}>Your name</Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: theme.pagePlane, color: theme.textPrimary, borderColor: theme.border }]}
-            placeholder="e.g. David"
-            placeholderTextColor={theme.textMuted}
-            value={profileName}
-            onChangeText={setProfileName}
-          />
+          <Text style={[styles.label, { color: theme.textSecondary }]}>Profile</Text>
+          <View style={styles.profileList}>
+            {profiles.map((p) => (
+              <Pressable
+                key={p.id}
+                onPress={() => switchProfile(p.id)}
+                style={[
+                  styles.profileChip,
+                  {
+                    backgroundColor: p.id === activeProfileId ? theme.series1 : "transparent",
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
+                <Text style={{ color: p.id === activeProfileId ? "#fff" : theme.textSecondary, fontWeight: "600" }}>
+                  {p.name}
+                </Text>
+              </Pressable>
+            ))}
+            <Pressable
+              onPress={() => setShowAddProfile((v) => !v)}
+              style={[styles.profileChip, { borderColor: theme.border }]}
+            >
+              <Text style={{ color: theme.textSecondary, fontWeight: "600" }}>
+                {showAddProfile ? "Cancel" : "+ Add profile"}
+              </Text>
+            </Pressable>
+          </View>
 
-          <Text style={[styles.label, { color: theme.textSecondary, marginTop: 12 }]}>Daily calorie goal</Text>
+          {showAddProfile ? (
+            <View style={styles.addProfileRow}>
+              <TextInput
+                style={[
+                  styles.input,
+                  styles.addProfileInput,
+                  { backgroundColor: theme.pagePlane, color: theme.textPrimary, borderColor: theme.border },
+                ]}
+                placeholder="e.g. Sarah"
+                placeholderTextColor={theme.textMuted}
+                value={newProfileName}
+                onChangeText={setNewProfileName}
+                autoFocus
+              />
+              <Pressable
+                style={[styles.addProfileButton, { backgroundColor: theme.series1 }]}
+                onPress={handleAddProfile}
+                disabled={addingProfile}
+              >
+                <Text style={styles.saveButtonText}>{addingProfile ? "Adding…" : "Add"}</Text>
+              </Pressable>
+            </View>
+          ) : null}
+          {addProfileError ? <Text style={{ color: theme.statusCritical, marginTop: 8 }}>{addProfileError}</Text> : null}
+        </View>
+
+        <View style={[styles.card, { backgroundColor: theme.surface1, borderColor: theme.border }]}>
+          <Text style={[styles.label, { color: theme.textSecondary }]}>Daily calorie goal</Text>
           <TextInput
             style={[styles.input, { backgroundColor: theme.pagePlane, color: theme.textPrimary, borderColor: theme.border }]}
             keyboardType="numeric"
@@ -207,6 +273,11 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderRadius: radii.sm, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, marginTop: 6 },
   unitToggle: { flexDirection: "row", gap: 6, marginTop: 6 },
   unitOption: { borderWidth: 1, borderRadius: radii.sm, paddingHorizontal: 16, paddingVertical: 10 },
+  profileList: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 6 },
+  profileChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 },
+  addProfileRow: { flexDirection: "row", gap: 8, marginTop: 12, alignItems: "center" },
+  addProfileInput: { flex: 1, marginTop: 0 },
+  addProfileButton: { borderRadius: radii.sm, paddingHorizontal: 16, paddingVertical: 10 },
   derived: { fontSize: 13, marginTop: 12 },
   saveButton: { borderRadius: radii.sm, paddingVertical: 12, alignItems: "center", marginTop: 16 },
   saveButtonText: { color: "#fff", fontWeight: "700" },
