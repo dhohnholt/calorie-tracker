@@ -6,6 +6,7 @@ import { api } from "../../src/api";
 import { useTheme, radii } from "../../src/theme";
 import Screen from "../../src/components/Screen";
 import { LoadingState, ErrorState, EmptyState } from "../../src/components/StateViews";
+import WeightChart from "../../src/components/WeightChart";
 
 export default function ProgressScreen() {
   const theme = useTheme();
@@ -115,6 +116,9 @@ export default function ProgressScreen() {
               Goal: {goalWeight} {unit}
             </Text>
           ) : null}
+          {entries.length > 1 && (
+            <WeightChart data={entries} goalWeight={goalWeight} unit={unit} />
+          )}
         </View>
 
         <View style={[styles.card, { backgroundColor: theme.surface1, borderColor: theme.border }]}>
