@@ -64,8 +64,10 @@ If the user gives guidance (e.g. "soup for dinner", "a crockpot meal", "no eggs 
 
 Give each meal both a time-of-day "slot" (Breakfast, Lunch, Dinner, Snack, etc.) and a real "dish_name" describing the actual dish (e.g. "Crockpot Chicken & White Bean Soup", not just "Dinner").
 
+Give each meal brief step-by-step cooking instructions in "instructions" — enough for someone to actually make it (prep, cook method, approximate time/temperature), written as 2-5 short numbered steps separated by newlines. Always include this, not just for meals that need a special appliance or method.
+
 Respond with ONLY valid JSON (no markdown fences, no commentary) matching exactly this shape:
-{"meals":[{"slot":string,"dish_name":string,"items":[{"food":string,"amount":string,"protein_g":number,"calories":number,"from_favorites":boolean}],"meal_protein_g":number}],"total_protein_g":number,"total_calories":number,"notes":string}`;
+{"meals":[{"slot":string,"dish_name":string,"items":[{"food":string,"amount":string,"protein_g":number,"calories":number,"from_favorites":boolean}],"meal_protein_g":number,"instructions":string}],"total_protein_g":number,"total_calories":number,"notes":string}`;
 
   const recipeLines = recipes
     .map((r) => `- ${r.name}: ${r.protein_g}g protein, ${r.calories} kcal per serving (fixed, use as-is)`)

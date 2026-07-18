@@ -19,6 +19,14 @@ function extractVideoUrl(notes) {
   return match ? match[0] : null;
 }
 
+function parseInstructionSteps(text) {
+  return (text || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((step) => step.replace(/^\d+[.)]\s*/, ""));
+}
+
 function getYouTubeEmbedUrl(url) {
   if (!url) return null;
   const match = url.match(
@@ -717,6 +725,13 @@ export default function MealPlanPage({ proteinGoal, todayProtein }) {
                     </li>
                   ))}
                 </ul>
+                {meal.instructions && (
+                  <ol className="meal-plan__ai-instructions">
+                    {parseInstructionSteps(meal.instructions).map((step, i) => (
+                      <li key={i}>{step}</li>
+                    ))}
+                  </ol>
+                )}
               </div>
             ))}
             <div className="meal-plan__total">
@@ -1084,13 +1099,9 @@ export default function MealPlanPage({ proteinGoal, todayProtein }) {
                 <div className="recipe-modal__section">
                   <h3>Instructions</h3>
                   <ol>
-                    {viewingRecipe.instructions
-                      .split("\n")
-                      .map((line) => line.trim())
-                      .filter(Boolean)
-                      .map((step, i) => (
-                        <li key={i}>{step.replace(/^\d+[.)]\s*/, "")}</li>
-                      ))}
+                    {parseInstructionSteps(viewingRecipe.instructions).map((step, i) => (
+                      <li key={i}>{step}</li>
+                    ))}
                   </ol>
                 </div>
               )}

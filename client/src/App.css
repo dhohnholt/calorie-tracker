@@ -1394,6 +1394,16 @@
   flex-shrink: 0;
 }
 
+.meal-plan__ai-instructions {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
 .meal-plan__total {
   margin-top: 12px;
   padding-top: 12px;
