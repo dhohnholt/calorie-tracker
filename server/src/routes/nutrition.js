@@ -47,6 +47,19 @@ function sanitizeQuery(query) {
   return query.replace(/[()]/g, " ").replace(/\s+/g, " ").trim();
 }
 
+// Barcode scans (upc_a: 12 digits, ean13: 13, ean8: 8) come in at whatever
+// length the symbology decodes to, but USDA stores every product's GTIN
+// zero-padded to 14 digits and its search doesn't treat the unpadded and
+// padded forms as equivalent — a raw 12-digit UPC-A search returns zero
+// results even when the product exists under its 14-digit GTIN. Left-pad
+// any all-digit query to 14 so a scanned barcode matches on the first try.
+// Non-barcode text searches are never pure digits, so this never fires for
+// them.
+function normalizeBarcodeQuery(query) {
+  const trimmed = query.trim();
+  return /^\d{6,14}$/.test(trimmed) ? trimmed.padStart(14, "0") : query;
+}
+
 async function fetchUSDA(query, pageSize, dataType) {
   const apiKey = process.env.USDA_API_KEY || "DEMO_KEY";
   const url = new URL("https://api.nal.usda.gov/fdc/v1/foods/search");
@@ -71,12 +84,13 @@ async function fetchUSDA(query, pageSize, dataType) {
 // dataType. Querying Branded separately and merging guarantees real brand-
 // name products actually show up instead of being crowded out by ranking.
 export async function searchUSDAFoods(query, pageSize = 25) {
+  const normalized = normalizeBarcodeQuery(query);
   const brandedCount = 10;
   const genericCount = pageSize - brandedCount;
 
   const [genericFoods, brandedFoods] = await Promise.all([
-    fetchUSDA(query, genericCount, "Foundation,SR Legacy"),
-    fetchUSDA(query, brandedCount, "Branded"),
+    fetchUSDA(normalized, genericCount, "Foundation,SR Legacy"),
+    fetchUSDA(normalized, brandedCount, "Branded"),
   ]);
 
   return [...genericFoods, ...brandedFoods].map(simplifyFood);
