@@ -49,6 +49,12 @@ export default function QuickAddFood({ onAdded }) {
   const [date, setDate] = useState(todayISO());
   const [saving, setSaving] = useState(false);
 
+  const [adjusting, setAdjusting] = useState(false);
+  const [caloriesOverride, setCaloriesOverride] = useState("");
+  const [proteinOverride, setProteinOverride] = useState("");
+  const [carbsOverride, setCarbsOverride] = useState("");
+  const [fatOverride, setFatOverride] = useState("");
+
   const [recentFoods, setRecentFoods] = useState([]);
   const [reAddingId, setReAddingId] = useState(null);
 
@@ -113,6 +119,15 @@ export default function QuickAddFood({ onAdded }) {
     setSelected(food);
     setUnit("g");
     setAmount(defaultQuantity(food));
+    setAdjusting(false);
+  }
+
+  function handleStartAdjusting() {
+    setCaloriesOverride(String(preview.calories));
+    setProteinOverride(String(preview.protein_g));
+    setCarbsOverride(String(preview.carbs_g));
+    setFatOverride(String(preview.fat_g));
+    setAdjusting(true);
   }
 
   function handleUnitChange(newUnit) {
@@ -131,7 +146,16 @@ export default function QuickAddFood({ onAdded }) {
     setError(null);
     try {
       const grams = toGrams(amount, unit, unitConversionFactor(unit, selected));
-      const macros = scaledMacros(selected, grams);
+      const computed = scaledMacros(selected, grams);
+      const macros = adjusting
+        ? {
+            ...computed,
+            calories: Number(caloriesOverride) || 0,
+            protein_g: Number(proteinOverride) || 0,
+            carbs_g: Number(carbsOverride) || 0,
+            fat_g: Number(fatOverride) || 0,
+          }
+        : computed;
       const qtyLabel = `${amount}${unit}`;
       await api.createFoodEntry({
         date,
@@ -143,6 +167,7 @@ export default function QuickAddFood({ onAdded }) {
       setQuery("");
       setResults(null);
       setSelected(null);
+      setAdjusting(false);
       onAdded(date);
       loadRecent();
     } catch (err) {
@@ -420,10 +445,64 @@ export default function QuickAddFood({ onAdded }) {
             </label>
           </div>
 
-          {preview && (
-            <div className="quick-add__preview tabular">
-              {preview.calories} kcal · {preview.protein_g}g protein · {preview.carbs_g}g carbs ·{" "}
-              {preview.fat_g}g fat
+          {preview && !adjusting && (
+            <div className="quick-add__preview-row">
+              <div className="quick-add__preview tabular">
+                {preview.calories} kcal · {preview.protein_g}g protein · {preview.carbs_g}g carbs ·{" "}
+                {preview.fat_g}g fat
+              </div>
+              <button type="button" className="quick-add__adjust-link" onClick={handleStartAdjusting}>
+                Adjust
+              </button>
+            </div>
+          )}
+
+          {preview && adjusting && (
+            <div className="quick-add__adjust">
+              <div className="quick-add__adjust-hint">
+                Not matching the package? Fix the numbers here.
+              </div>
+              <div className="quick-add__fields">
+                <label>
+                  Calories
+                  <input
+                    type="number"
+                    min="0"
+                    value={caloriesOverride}
+                    onChange={(e) => setCaloriesOverride(e.target.value)}
+                  />
+                </label>
+                <label>
+                  Protein (g)
+                  <input
+                    type="number"
+                    min="0"
+                    value={proteinOverride}
+                    onChange={(e) => setProteinOverride(e.target.value)}
+                  />
+                </label>
+                <label>
+                  Carbs (g)
+                  <input
+                    type="number"
+                    min="0"
+                    value={carbsOverride}
+                    onChange={(e) => setCarbsOverride(e.target.value)}
+                  />
+                </label>
+                <label>
+                  Fat (g)
+                  <input
+                    type="number"
+                    min="0"
+                    value={fatOverride}
+                    onChange={(e) => setFatOverride(e.target.value)}
+                  />
+                </label>
+              </div>
+              <button type="button" className="quick-add__adjust-link" onClick={() => setAdjusting(false)}>
+                Reset to calculated
+              </button>
             </div>
           )}
 

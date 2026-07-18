@@ -953,6 +953,36 @@
   color: var(--text-secondary);
 }
 
+.quick-add__preview-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.quick-add__adjust-link {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-top: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--series-1);
+  cursor: pointer;
+}
+
+.quick-add__adjust {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.quick-add__adjust-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
 /* Toast */
 @keyframes toast-in {
   from {

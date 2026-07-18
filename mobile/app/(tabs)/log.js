@@ -58,6 +58,12 @@ export default function LogScreen() {
   const [savedMessage, setSavedMessage] = useState(null);
   const [scanning, setScanning] = useState(false);
 
+  const [adjusting, setAdjusting] = useState(false);
+  const [caloriesOverride, setCaloriesOverride] = useState("");
+  const [proteinOverride, setProteinOverride] = useState("");
+  const [carbsOverride, setCarbsOverride] = useState("");
+  const [fatOverride, setFatOverride] = useState("");
+
   const loadRecent = useCallback(async () => {
     try {
       const entries = await api.getFoodEntries({});
@@ -101,6 +107,15 @@ export default function LogScreen() {
     setUnit("g");
     setAmount(defaultQuantity(food));
     setSavedMessage(null);
+    setAdjusting(false);
+  }
+
+  function handleStartAdjusting() {
+    setCaloriesOverride(String(preview.calories));
+    setProteinOverride(String(preview.protein_g));
+    setCarbsOverride(String(preview.carbs_g));
+    setFatOverride(String(preview.fat_g));
+    setAdjusting(true);
   }
 
   function handleUnitChange(newUnit) {
@@ -124,7 +139,16 @@ export default function LogScreen() {
     setError(null);
     try {
       const grams = toGrams(Number(amount) || 0, unit, unitConversionFactor(unit, selected));
-      const macros = scaledMacros(selected, grams);
+      const computed = scaledMacros(selected, grams);
+      const macros = adjusting
+        ? {
+            ...computed,
+            calories: Number(caloriesOverride) || 0,
+            protein_g: Number(proteinOverride) || 0,
+            carbs_g: Number(carbsOverride) || 0,
+            fat_g: Number(fatOverride) || 0,
+          }
+        : computed;
       const qtyLabel = `${amount}${unit}`;
       await api.createFoodEntry({
         date,
@@ -137,6 +161,7 @@ export default function LogScreen() {
       setQuery("");
       setResults(null);
       setSelected(null);
+      setAdjusting(false);
       loadRecent();
     } catch (err) {
       setError(err.message);
@@ -302,11 +327,79 @@ export default function LogScreen() {
               </Pressable>
             </View>
 
-            {preview ? (
-              <Text style={[styles.preview, { color: theme.textPrimary }]}>
-                {preview.calories} kcal · {preview.protein_g}g protein · {preview.carbs_g}g carbs ·{" "}
-                {preview.fat_g}g fat
-              </Text>
+            {preview && !adjusting ? (
+              <View style={styles.previewRow}>
+                <Text style={[styles.preview, { color: theme.textPrimary }]}>
+                  {preview.calories} kcal · {preview.protein_g}g protein · {preview.carbs_g}g carbs ·{" "}
+                  {preview.fat_g}g fat
+                </Text>
+                <Pressable onPress={handleStartAdjusting}>
+                  <Text style={[styles.adjustLink, { color: theme.series1 }]}>Adjust</Text>
+                </Pressable>
+              </View>
+            ) : null}
+
+            {preview && adjusting ? (
+              <View style={[styles.adjustBox, { borderColor: theme.border }]}>
+                <Text style={[styles.adjustHint, { color: theme.textMuted }]}>
+                  Not matching the package? Fix the numbers here.
+                </Text>
+                <View style={styles.adjustFieldRow}>
+                  <View style={styles.adjustField}>
+                    <Text style={[styles.label, { color: theme.textSecondary }]}>Calories</Text>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        { backgroundColor: theme.pagePlane, color: theme.textPrimary, borderColor: theme.border },
+                      ]}
+                      keyboardType="numeric"
+                      value={caloriesOverride}
+                      onChangeText={setCaloriesOverride}
+                    />
+                  </View>
+                  <View style={styles.adjustField}>
+                    <Text style={[styles.label, { color: theme.textSecondary }]}>Protein (g)</Text>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        { backgroundColor: theme.pagePlane, color: theme.textPrimary, borderColor: theme.border },
+                      ]}
+                      keyboardType="numeric"
+                      value={proteinOverride}
+                      onChangeText={setProteinOverride}
+                    />
+                  </View>
+                </View>
+                <View style={styles.adjustFieldRow}>
+                  <View style={styles.adjustField}>
+                    <Text style={[styles.label, { color: theme.textSecondary }]}>Carbs (g)</Text>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        { backgroundColor: theme.pagePlane, color: theme.textPrimary, borderColor: theme.border },
+                      ]}
+                      keyboardType="numeric"
+                      value={carbsOverride}
+                      onChangeText={setCarbsOverride}
+                    />
+                  </View>
+                  <View style={styles.adjustField}>
+                    <Text style={[styles.label, { color: theme.textSecondary }]}>Fat (g)</Text>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        { backgroundColor: theme.pagePlane, color: theme.textPrimary, borderColor: theme.border },
+                      ]}
+                      keyboardType="numeric"
+                      value={fatOverride}
+                      onChangeText={setFatOverride}
+                    />
+                  </View>
+                </View>
+                <Pressable onPress={() => setAdjusting(false)}>
+                  <Text style={[styles.adjustLink, { color: theme.series1 }]}>Reset to calculated</Text>
+                </Pressable>
+              </View>
             ) : null}
 
             <View style={styles.actionsRow}>
@@ -390,7 +483,13 @@ const styles = StyleSheet.create({
   mealRow: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
   mealOption: { borderWidth: 1, borderRadius: radii.sm, paddingHorizontal: 12, paddingVertical: 8 },
   quickDateButton: { borderWidth: 1, borderRadius: radii.sm, paddingHorizontal: 10, justifyContent: "center" },
-  preview: { fontSize: 14, fontWeight: "600" },
+  preview: { fontSize: 14, fontWeight: "600", flex: 1 },
+  previewRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  adjustLink: { fontSize: 13, fontWeight: "700" },
+  adjustBox: { borderTopWidth: 1, paddingTop: 10, gap: 8 },
+  adjustHint: { fontSize: 12 },
+  adjustFieldRow: { flexDirection: "row", gap: 10 },
+  adjustField: { flex: 1, gap: 4 },
   actionsRow: { flexDirection: "row", justifyContent: "flex-end", gap: 10, marginTop: 4 },
   secondaryButton: { paddingHorizontal: 12, justifyContent: "center" },
   resultRow: {
