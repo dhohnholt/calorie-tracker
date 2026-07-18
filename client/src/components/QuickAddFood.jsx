@@ -376,16 +376,20 @@ export default function QuickAddFood({ onAdded }) {
       {results && !selected && (
         <ul className="quick-add__results">
           {results.length === 0 && <li className="quick-add__empty">No matches found</li>}
-          {results.map((food) => (
-            <li key={food.fdcId}>
-              <button className="quick-add__result" onClick={() => handleSelect(food)}>
-                <span className="quick-add__result-desc">{food.description}</span>
-                <span className="quick-add__result-cals tabular">
-                  {Math.round(food.per100g?.calories || 0)} kcal/100g
-                </span>
-              </button>
-            </li>
-          ))}
+          {results.map((food) => {
+            const grams = defaultQuantity(food);
+            const cals = scaledMacros(food, grams).calories;
+            return (
+              <li key={food.fdcId}>
+                <button className="quick-add__result" onClick={() => handleSelect(food)}>
+                  <span className="quick-add__result-desc">{food.description}</span>
+                  <span className="quick-add__result-cals tabular">
+                    {cals} kcal ({grams}g)
+                  </span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
 

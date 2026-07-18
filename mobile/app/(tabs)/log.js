@@ -454,19 +454,23 @@ export default function LogScreen() {
             keyExtractor={(item) => String(item.fdcId)}
             contentContainerStyle={{ gap: 8 }}
             ListEmptyComponent={<EmptyState title="No matches found" />}
-            renderItem={({ item }) => (
-              <Pressable
-                style={[styles.resultRow, { backgroundColor: theme.surface1, borderColor: theme.border }]}
-                onPress={() => handleSelect(item)}
-              >
-                <Text style={[styles.resultDesc, { color: theme.textPrimary }]} numberOfLines={2}>
-                  {item.description}
-                </Text>
-                <Text style={[styles.resultCals, { color: theme.textMuted }]}>
-                  {Math.round(item.per100g?.calories || 0)} kcal/100g
-                </Text>
-              </Pressable>
-            )}
+            renderItem={({ item }) => {
+              const grams = defaultQuantity(item);
+              const cals = scaledMacros(item, grams).calories;
+              return (
+                <Pressable
+                  style={[styles.resultRow, { backgroundColor: theme.surface1, borderColor: theme.border }]}
+                  onPress={() => handleSelect(item)}
+                >
+                  <Text style={[styles.resultDesc, { color: theme.textPrimary }]} numberOfLines={2}>
+                    {item.description}
+                  </Text>
+                  <Text style={[styles.resultCals, { color: theme.textMuted }]}>
+                    {cals} kcal ({grams}g)
+                  </Text>
+                </Pressable>
+              );
+            }}
           />
         ) : (
           <FlatList
