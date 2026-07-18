@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { cmToIn, inToCm } from "../bodyMetrics";
+import { api } from "../api";
+import { cmToIn, inToCm, proteinGoalGrams } from "../bodyMetrics";
+import { daysAgoISO, todayISO } from "../dates";
+import { buildFoodLogReport } from "../foodLogExport";
 
 export default function SettingsModal({ settings, onSave, onClose }) {
   const [calorieGoal, setCalorieGoal] = useState(settings.calorie_goal);
@@ -8,6 +11,11 @@ export default function SettingsModal({ settings, onSave, onClose }) {
   const [heightCm, setHeightCm] = useState(
     settings.height_cm ? Number(settings.height_cm) : ""
   );
+
+  const [exportReport, setExportReport] = useState(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState(null);
+  const [copyMsg, setCopyMsg] = useState(null);
 
   const heightDisplayValue =
     heightCm === "" ? "" : weightUnit === "kg" ? heightCm : Math.round(cmToIn(heightCm) * 10) / 10;
@@ -31,9 +39,41 @@ export default function SettingsModal({ settings, onSave, onClose }) {
     });
   }
 
+  async function handleExport() {
+    setExporting(true);
+    setExportError(null);
+    setCopyMsg(null);
+    try {
+      const start = daysAgoISO(6);
+      const end = todayISO();
+      const entries = await api.getFoodEntries({ start, end });
+      const report = buildFoodLogReport({
+        entries,
+        start,
+        end,
+        calorieGoal: calorieGoal ? Number(calorieGoal) : null,
+        proteinGoal: proteinGoalGrams(Number(goalWeight) || 0, weightUnit) || null,
+      });
+      setExportReport(report);
+    } catch (err) {
+      setExportError(err.message);
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function handleCopyExport() {
+    try {
+      await navigator.clipboard.writeText(exportReport);
+      setCopyMsg("Copied to clipboard");
+    } catch {
+      setCopyMsg("Couldn't copy automatically — select the text above and copy manually");
+    }
+  }
+
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className={exportReport ? "modal modal--wide" : "modal"} onClick={(e) => e.stopPropagation()}>
         <h2>Settings</h2>
         <form onSubmit={handleSubmit} className="settings-form">
           <label>
@@ -78,6 +118,32 @@ export default function SettingsModal({ settings, onSave, onClose }) {
           >
             Check AI usage &amp; billing (Anthropic Console) ↗
           </a>
+
+          <div className="settings-export">
+            <div className="settings-export__header">
+              <span className="settings-export__label">Export food log</span>
+              <button type="button" className="button-secondary" onClick={handleExport} disabled={exporting}>
+                {exporting ? "Building…" : "Copy last 7 days"}
+              </button>
+            </div>
+            {exportError && <p className="auth-screen__error">{exportError}</p>}
+            {exportReport && (
+              <>
+                <textarea
+                  className="settings-export__report"
+                  readOnly
+                  value={exportReport}
+                  onFocus={(e) => e.target.select()}
+                />
+                <div className="settings-export__actions">
+                  <button type="button" className="button-primary" onClick={handleCopyExport}>
+                    Copy to clipboard
+                  </button>
+                  {copyMsg && <span className="settings-export__copy-msg">{copyMsg}</span>}
+                </div>
+              </>
+            )}
+          </div>
 
           <div className="modal-actions">
             <button type="button" className="button-secondary" onClick={onClose}>

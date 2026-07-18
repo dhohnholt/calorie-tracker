@@ -785,6 +785,52 @@
   text-decoration: underline;
 }
 
+.settings-export {
+  border-top: 1px solid var(--gridline);
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settings-export__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-export__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.settings-export__report {
+  width: 100%;
+  height: 260px;
+  border: 1px solid var(--border);
+  background: var(--page-plane);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  font-size: 12px;
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+  resize: vertical;
+}
+
+.settings-export__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.settings-export__copy-msg {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;
