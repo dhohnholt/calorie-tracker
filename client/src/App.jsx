@@ -3,6 +3,7 @@ import { api } from "./api";
 import { getToken, clearToken } from "./auth";
 import { daysAgoISO, todayISO, eachDateInRange, timeGreeting } from "./dates";
 import { proteinGoalGrams } from "./bodyMetrics";
+import { computeStreak, computeWeeklyComparison } from "./dailyStats";
 import QuickAddFood from "./components/QuickAddFood";
 import TodaySummary from "./components/TodaySummary";
 import WeeklyTrend from "./components/WeeklyTrend";
@@ -17,6 +18,9 @@ import MealPlanPage from "./components/MealPlanPage";
 import "./App.css";
 
 const CHART_DAYS = 20;
+// Wider than the chart itself so a genuine multi-week streak doesn't get
+// truncated by the same window used for the 20-day bar chart.
+const STATS_WINDOW_DAYS = 90;
 
 export default function App() {
   const [view, setView] = useState("dashboard");
@@ -39,12 +43,13 @@ export default function App() {
   }
 
   const rangeStart = daysAgoISO(CHART_DAYS - 1);
+  const statsRangeStart = daysAgoISO(STATS_WINDOW_DAYS - 1);
   const rangeEnd = todayISO();
 
   async function loadAll() {
     const [settingsRes, summaryRes, weightRes] = await Promise.all([
       api.getSettings(),
-      api.getDailySummary(rangeStart, rangeEnd),
+      api.getDailySummary(statsRangeStart, rangeEnd),
       api.getWeightEntries({ start: daysAgoISO(89), end: rangeEnd }),
     ]);
     setSettings(settingsRes);
@@ -133,17 +138,20 @@ export default function App() {
     [chartData]
   );
 
+  const streak = useMemo(() => computeStreak(dailySummary), [dailySummary]);
+  const weeklyComparison = useMemo(() => computeWeeklyComparison(dailySummary), [dailySummary]);
+
   async function handleDeleteFoodEntry(id) {
     await api.deleteFoodEntry(id);
     await loadSelectedDateEntries(selectedDate);
-    const summaryRes = await api.getDailySummary(rangeStart, rangeEnd);
+    const summaryRes = await api.getDailySummary(statsRangeStart, rangeEnd);
     setDailySummary(summaryRes);
     showToast("Entry deleted");
   }
 
   async function handleUpdateFoodEntry(id, fields) {
     await api.updateFoodEntry(id, fields);
-    const summaryRes = await api.getDailySummary(rangeStart, rangeEnd);
+    const summaryRes = await api.getDailySummary(statsRangeStart, rangeEnd);
     setDailySummary(summaryRes);
     if (fields.date && fields.date !== selectedDate) {
       setSelectedDate(fields.date);
@@ -154,7 +162,7 @@ export default function App() {
   }
 
   async function handleFoodAdded(date) {
-    const summaryRes = await api.getDailySummary(rangeStart, rangeEnd);
+    const summaryRes = await api.getDailySummary(statsRangeStart, rangeEnd);
     setDailySummary(summaryRes);
     if (date === selectedDate) {
       await loadSelectedDateEntries(date);
@@ -236,7 +244,7 @@ export default function App() {
         <main className="app-grid">
           <TodaySummary totals={todayTotals} goal={calorieGoal} proteinGoal={proteinGoal} />
 
-          <WeeklyTrend data={chartData} goal={calorieGoal} />
+          <WeeklyTrend data={chartData} goal={calorieGoal} streak={streak} comparison={weeklyComparison} />
 
           <CaloriesChart
             data={chartData}

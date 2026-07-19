@@ -5,6 +5,7 @@ import {
   parseISODate,
   todayISO,
   daysAgoISO,
+  shiftISODate,
   eachDateInRange,
   inferMealFromTime,
   timeGreeting,
@@ -57,6 +58,19 @@ describe("todayISO / daysAgoISO", () => {
     const expected = new Date(today);
     expected.setDate(expected.getDate() - 7);
     assert.equal(daysAgoISO(7), toISODate(expected));
+  });
+});
+
+describe("shiftISODate", () => {
+  test("shifts forward and backward relative to the given date, not today", () => {
+    assert.equal(shiftISODate("2026-07-18", -6), "2026-07-12");
+    assert.equal(shiftISODate("2026-07-18", 6), "2026-07-24");
+    assert.equal(shiftISODate("2026-07-18", 0), "2026-07-18");
+  });
+
+  test("crosses month and year boundaries correctly", () => {
+    assert.equal(shiftISODate("2026-01-01", -1), "2025-12-31");
+    assert.equal(shiftISODate("2026-02-28", 1), "2026-03-01");
   });
 });
 

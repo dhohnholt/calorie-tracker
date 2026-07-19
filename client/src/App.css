@@ -273,6 +273,19 @@
   color: var(--text-secondary);
 }
 
+.weekly-trend__comparison {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.weekly-trend__streak {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--series-1);
+  white-space: nowrap;
+}
+
 .today-summary__macros {
   display: flex;
   align-items: center;

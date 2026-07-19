@@ -1,9 +1,17 @@
 import { useCallback, useState } from "react";
 import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "expo-router";
-import { todayISO, timeGreeting, parseISODate, toISODate, formatShortDate } from "calorie-tracker-shared/dates.js";
+import {
+  todayISO,
+  daysAgoISO,
+  timeGreeting,
+  parseISODate,
+  toISODate,
+  formatShortDate,
+} from "calorie-tracker-shared/dates.js";
 import { proteinGoalGrams } from "calorie-tracker-shared/bodyMetrics.js";
 import { MEAL_TYPES } from "calorie-tracker-shared/validation.js";
+import { computeStreak, computeWeeklyComparison } from "calorie-tracker-shared/dailyStats.js";
 import { api } from "../../src/api";
 import { useAuth } from "../../src/authContext";
 import { useTheme, radii } from "../../src/theme";
@@ -13,6 +21,8 @@ import FoodItemRow from "../../src/components/FoodItemRow";
 import KeyboardDoneAccessory from "../../src/components/KeyboardDoneAccessory";
 
 const MEAL_LABELS = { breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner", snack: "Snack" };
+// Wide enough for a meaningful streak without needing its own screen/fetch.
+const STATS_WINDOW_DAYS = 90;
 
 function shiftDate(iso, days) {
   const d = parseISODate(iso);
@@ -26,6 +36,14 @@ function dateLabel(iso) {
   return formatShortDate(iso);
 }
 
+function formatComparison({ avgCaloriesThisWeek, avgCaloriesLastWeek }) {
+  if (avgCaloriesThisWeek == null || avgCaloriesLastWeek == null) return null;
+  const diff = avgCaloriesThisWeek - avgCaloriesLastWeek;
+  const pct = Math.round((Math.abs(diff) / avgCaloriesLastWeek) * 100);
+  if (pct < 3) return "About the same as last week";
+  return `${pct}% ${diff > 0 ? "above" : "below"} last week's average`;
+}
+
 export default function TodayScreen() {
   const theme = useTheme();
   const { me } = useAuth();
@@ -33,6 +51,7 @@ export default function TodayScreen() {
   const [settings, setSettings] = useState(null);
   const [totals, setTotals] = useState(null);
   const [entries, setEntries] = useState([]);
+  const [statsSummary, setStatsSummary] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
@@ -42,14 +61,16 @@ export default function TodayScreen() {
     isRefresh ? setRefreshing(true) : setLoading(true);
     setError(null);
     try {
-      const [settingsRes, summaryRes, entriesRes] = await Promise.all([
+      const [settingsRes, summaryRes, entriesRes, statsRes] = await Promise.all([
         api.getSettings(),
         api.getDailySummary(forDate, forDate),
         api.getFoodEntries({ date: forDate }),
+        api.getDailySummary(daysAgoISO(STATS_WINDOW_DAYS - 1), todayISO()),
       ]);
       setSettings(settingsRes);
       setTotals(summaryRes[0] || { calories: 0, protein_g: 0 });
       setEntries(entriesRes);
+      setStatsSummary(statsRes);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -118,6 +139,10 @@ export default function TodayScreen() {
   const profileName = me?.name;
   const isToday = date === todayISO();
 
+  const streak = computeStreak(statsSummary);
+  const comparison = computeWeeklyComparison(statsSummary);
+  const comparisonText = formatComparison(comparison);
+
   const groups = MEAL_TYPES.map((meal) => ({
     meal,
     entries: entries.filter((e) => e.meal === meal),
@@ -176,6 +201,17 @@ export default function TodayScreen() {
             <Text style={[styles.caption, { color: theme.textMuted }]}>of {proteinGoal}g goal</Text>
           ) : null}
         </View>
+
+        {(streak > 0 || comparisonText) && (
+          <View style={[styles.card, styles.trendCard, { backgroundColor: theme.surface1, borderColor: theme.border }]}>
+            {streak > 0 && (
+              <Text style={[styles.streakText, { color: theme.series1 }]}>{streak}-day streak</Text>
+            )}
+            {comparisonText && (
+              <Text style={[styles.caption, { color: theme.textMuted }]}>{comparisonText}</Text>
+            )}
+          </View>
+        )}
 
         <View style={styles.loggedSection}>
           <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Food logged</Text>
@@ -241,6 +277,8 @@ const styles = StyleSheet.create({
   label: { fontSize: 14, fontWeight: "600", alignSelf: "flex-start" },
   caption: { fontSize: 14 },
   remaining: { fontSize: 16, fontWeight: "700", marginTop: 4 },
+  trendCard: { paddingVertical: 14, gap: 2 },
+  streakText: { fontSize: 16, fontWeight: "700" },
   loggedSection: { gap: 8 },
   sectionTitle: { fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 },
   mealCard: { borderRadius: radii.lg, borderWidth: 1, padding: 14, gap: 4 },

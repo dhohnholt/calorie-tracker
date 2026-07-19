@@ -1,18 +1,32 @@
 import { BarChart, Bar, ReferenceLine, ResponsiveContainer, Tooltip, Cell } from "recharts";
 import { formatShortDate } from "../dates";
 
-export default function WeeklyTrend({ data, goal }) {
+function formatComparison({ avgCaloriesThisWeek, avgCaloriesLastWeek }) {
+  if (avgCaloriesThisWeek == null || avgCaloriesLastWeek == null) return null;
+  const diff = avgCaloriesThisWeek - avgCaloriesLastWeek;
+  const pct = Math.round((Math.abs(diff) / avgCaloriesLastWeek) * 100);
+  if (pct < 3) return "About the same as last week";
+  return `${pct}% ${diff > 0 ? "above" : "below"} last week's average`;
+}
+
+export default function WeeklyTrend({ data, goal, streak = 0, comparison }) {
   const last7 = data.slice(-7);
   const trackedDays = last7.filter((d) => d.calories > 0);
   const avgCalories = trackedDays.length
     ? trackedDays.reduce((sum, d) => sum + d.calories, 0) / trackedDays.length
     : 0;
   const overGoalCount = trackedDays.filter((d) => d.calories > goal).length;
+  const comparisonText = comparison ? formatComparison(comparison) : null;
 
   return (
     <div className="card weekly-trend">
       <div className="card__header">
         <h2>7-day trend</h2>
+        {streak > 0 && (
+          <span className="weekly-trend__streak">
+            {streak}-day streak
+          </span>
+        )}
       </div>
 
       <div className="weekly-trend__stat">
@@ -27,6 +41,7 @@ export default function WeeklyTrend({ data, goal }) {
                 trackedDays.length === 1 ? "" : "s"
               } over goal`}
         </div>
+        {comparisonText && <div className="weekly-trend__comparison">{comparisonText}</div>}
       </div>
 
       <ResponsiveContainer width="100%" height={90}>

@@ -27,6 +27,15 @@ export function daysAgoISO(n) {
   return toISODate(d);
 }
 
+// Like daysAgoISO, but relative to a given ISO date instead of "now" — used
+// wherever the base date needs to be deterministic (tests, or math anchored
+// to something other than today).
+export function shiftISODate(iso, days) {
+  const d = parseISODate(iso);
+  d.setDate(d.getDate() + days);
+  return toISODate(d);
+}
+
 export function formatShortDate(iso) {
   if (typeof iso !== "string") return "";
   return parseISODate(iso).toLocaleDateString(undefined, {
