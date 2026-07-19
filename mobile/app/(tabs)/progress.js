@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { todayISO, daysAgoISO, formatShortDate } from "calorie-tracker-shared/dates.js";
+import { computeWeightLossStreak } from "calorie-tracker-shared/weightTrend.js";
 import { api } from "../../src/api";
 import { useTheme, radii } from "../../src/theme";
 import Screen from "../../src/components/Screen";
@@ -87,6 +88,7 @@ export default function ProgressScreen() {
   const unit = settings?.weight_unit || "lbs";
   const goalWeight = settings?.goal_weight ? Number(settings.goal_weight) : null;
   const todaysEntry = entries.find((e) => e.date === todayISO());
+  const lossStreak = computeWeightLossStreak(entries);
 
   return (
     <Screen>
@@ -116,6 +118,11 @@ export default function ProgressScreen() {
               Goal: {goalWeight} {unit}
             </Text>
           ) : null}
+          {lossStreak > 0 && (
+            <Text style={[styles.streakText, { color: theme.series1 }]}>
+              {lossStreak}-day streak of lower weigh-ins
+            </Text>
+          )}
           {entries.length > 1 && (
             <WeightChart data={entries} goalWeight={goalWeight} unit={unit} />
           )}
@@ -178,6 +185,7 @@ const styles = StyleSheet.create({
   card: { borderWidth: 1, borderRadius: radii.lg, padding: 16, alignItems: "center", gap: 4 },
   bigNumber: { fontSize: 32, fontWeight: "800" },
   caption: { fontSize: 14 },
+  streakText: { fontSize: 13, fontWeight: "700", marginTop: 4 },
   label: { fontSize: 13, fontWeight: "600", alignSelf: "flex-start" },
   fieldRow: { flexDirection: "row", gap: 8, alignSelf: "stretch" },
   input: { borderWidth: 1, borderRadius: radii.sm, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },

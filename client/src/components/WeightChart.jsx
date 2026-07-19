@@ -10,7 +10,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { formatShortDate, formatFullDate, todayISO } from "../dates";
-import { computeWeightTrend } from "../weightTrend";
+import { computeWeightTrend, computeWeightLossStreak } from "../weightTrend";
 import { computeBMI, bmiCategory } from "../bodyMetrics";
 
 export default function WeightChart({ data, goalWeight, unit, heightCm, onAdd }) {
@@ -23,6 +23,7 @@ export default function WeightChart({ data, goalWeight, unit, heightCm, onAdd })
   const pad = Math.max((max - min) * 0.1, 3);
 
   const trend = computeWeightTrend(data, goalWeight);
+  const lossStreak = computeWeightLossStreak(data);
   const currentWeight = data.length ? data[data.length - 1].weight : null;
   const bmi = computeBMI(currentWeight, unit, heightCm);
   const bmiInfo = bmi ? bmiCategory(bmi) : null;
@@ -46,6 +47,12 @@ export default function WeightChart({ data, goalWeight, unit, heightCm, onAdd })
           <span>Goal ({goalWeight})</span>
         </div>
       </div>
+
+      {lossStreak > 0 && (
+        <div className="weight-loss-streak">
+          {lossStreak}-day streak of lower weigh-ins
+        </div>
+      )}
 
       <div className="weight-trend-stats">
         {trend.status === "insufficient" && (

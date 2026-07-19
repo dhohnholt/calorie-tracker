@@ -1,6 +1,6 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { computeWeightTrend } from "../weightTrend.js";
+import { computeWeightTrend, computeWeightLossStreak } from "../weightTrend.js";
 
 describe("computeWeightTrend", () => {
   test("reports insufficient data with fewer than 2 entries", () => {
@@ -44,5 +44,56 @@ describe("computeWeightTrend", () => {
     assert.equal(trend.status, "projecting");
     assert.ok(trend.projectedDate > "2026-07-11");
     assert.ok(trend.weeklyRate < 0);
+  });
+});
+
+describe("computeWeightLossStreak", () => {
+  test("is 0 with no entries", () => {
+    assert.equal(computeWeightLossStreak([], "2026-07-18"), 0);
+  });
+
+  test("is 0 when neither today nor yesterday was logged", () => {
+    const entries = [{ date: "2026-07-10", weight: 200 }];
+    assert.equal(computeWeightLossStreak(entries, "2026-07-18"), 0);
+  });
+
+  test("counts consecutive decreasing days, needing one extra baseline day", () => {
+    // 07-15: 237 (baseline), 07-16: 235 (<237, day 1), 07-17: 233 (<235, day 2),
+    // 07-18: 231 (<233, day 3) -> a 3-day streak.
+    const entries = [
+      { date: "2026-07-15", weight: 237 },
+      { date: "2026-07-16", weight: 235 },
+      { date: "2026-07-17", weight: 233 },
+      { date: "2026-07-18", weight: 231 },
+    ];
+    assert.equal(computeWeightLossStreak(entries, "2026-07-18"), 3);
+  });
+
+  test("doesn't break the streak just because today isn't logged yet", () => {
+    const entries = [
+      { date: "2026-07-16", weight: 235 },
+      { date: "2026-07-17", weight: 233 },
+    ];
+    assert.equal(computeWeightLossStreak(entries, "2026-07-18"), 1);
+  });
+
+  test("stops at a gap in weigh-ins", () => {
+    const entries = [
+      { date: "2026-07-14", weight: 240 },
+      // gap on 07-15
+      { date: "2026-07-16", weight: 235 },
+      { date: "2026-07-17", weight: 233 },
+      { date: "2026-07-18", weight: 231 },
+    ];
+    assert.equal(computeWeightLossStreak(entries, "2026-07-18"), 2);
+  });
+
+  test("stops at a tie or increase", () => {
+    const entries = [
+      { date: "2026-07-16", weight: 233 },
+      { date: "2026-07-17", weight: 233 }, // tie, not a decrease
+      { date: "2026-07-18", weight: 231 },
+    ];
+    assert.equal(computeWeightLossStreak(entries, "2026-07-18"), 1);
   });
 });

@@ -531,6 +531,13 @@
 }
 
 /* Weight chart */
+.weight-loss-streak {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--series-1);
+  margin-bottom: 6px;
+}
+
 .weight-trend-stats {
   font-size: 13px;
   color: var(--text-secondary);
