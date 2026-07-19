@@ -1,34 +1,24 @@
-import { toISODate, parseISODate, todayISO, shiftISODate } from "./dates.js";
+import { toISODate, parseISODate } from "./dates.js";
 
 function daysBetween(a, b) {
   return (new Date(b) - new Date(a)) / (1000 * 60 * 60 * 24);
 }
 
-// Counts consecutive calendar days (most recent backward) where each day's
-// logged weight was strictly lower than the day before it. A gap in
-// weigh-ins or a non-decrease breaks the streak. Not weighing in yet today
-// doesn't reset an existing streak — it just means today isn't counted
-// until something is logged (same rule as the food-logging streak).
-export function computeWeightLossStreak(entries, today = todayISO()) {
-  if (entries.length === 0) return 0;
-  const byDate = new Map(entries.map((e) => [e.date, e.weight]));
-
-  let laterDate = byDate.has(today) ? today : shiftISODate(today, -1);
-  if (!byDate.has(laterDate)) return 0;
-
+// Counts consecutive logged weigh-ins (most recent backward, in the order
+// they were logged — not calendar days) where each is strictly lower than
+// the one before it. A gap between weigh-in dates doesn't matter, only
+// whether the sequence of entries you actually logged keeps decreasing; a
+// tie or increase breaks the streak. Expects entries sorted ascending by
+// date (what the API already returns).
+export function computeWeightLossStreak(entries) {
   let streak = 0;
-  let laterWeight = byDate.get(laterDate);
-
-  while (true) {
-    const earlierDate = shiftISODate(laterDate, -1);
-    if (!byDate.has(earlierDate)) break;
-    const earlierWeight = byDate.get(earlierDate);
-    if (!(laterWeight < earlierWeight)) break;
-    streak++;
-    laterDate = earlierDate;
-    laterWeight = earlierWeight;
+  for (let i = entries.length - 1; i > 0; i--) {
+    if (entries[i].weight < entries[i - 1].weight) {
+      streak++;
+    } else {
+      break;
+    }
   }
-
   return streak;
 }
 
