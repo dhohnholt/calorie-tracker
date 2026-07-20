@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, ImageBackground, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "expo-router";
 import {
   todayISO,
@@ -178,7 +178,11 @@ export default function TodayScreen() {
           </Pressable>
         </View>
 
-        <View style={[styles.card, { backgroundColor: theme.surface1, borderColor: theme.border }]}>
+        <ImageBackground
+          source={require("../../assets/today_bg.jpg")}
+          imageStyle={[styles.cardBgImage, { opacity: theme.scheme === "dark" ? 0.2 : 0.04 }]}
+          style={[styles.card, styles.cardBg, { backgroundColor: theme.surface1, borderColor: theme.border }]}
+        >
           <Text style={[styles.bigNumber, { color: theme.textPrimary }]}>{consumed}</Text>
           <Text style={[styles.caption, { color: theme.textMuted }]}>
             of {calorieGoal || "—"} kcal goal
@@ -191,7 +195,7 @@ export default function TodayScreen() {
           >
             {remaining < 0 ? `${Math.abs(remaining)} over` : `${remaining} remaining`}
           </Text>
-        </View>
+        </ImageBackground>
 
         <View style={[styles.card, { backgroundColor: theme.surface1, borderColor: theme.border }]}>
           <Text style={[styles.label, { color: theme.textSecondary }]}>Protein</Text>
@@ -274,6 +278,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
   },
+  cardBg: { overflow: "hidden" },
+  cardBgImage: { borderRadius: radii.lg, resizeMode: "cover" },
   bigNumber: { fontSize: 40, fontWeight: "800" },
   label: { fontSize: 14, fontWeight: "600", alignSelf: "flex-start" },
   caption: { fontSize: 14 },
