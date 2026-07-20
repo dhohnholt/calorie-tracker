@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { MEAL_TYPES } from "calorie-tracker-shared/validation.js";
 import { useTheme, radii } from "../theme";
-import KeyboardDoneAccessory, { NUMERIC_KEYBOARD_ACCESSORY_ID } from "./KeyboardDoneAccessory";
+import { NUMERIC_KEYBOARD_ACCESSORY_ID } from "./KeyboardDoneAccessory";
 
 const MEAL_LABELS = { breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner", snack: "Snack" };
 
