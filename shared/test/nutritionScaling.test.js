@@ -4,6 +4,7 @@ import {
   toGrams,
   defaultQuantity,
   scaledMacros,
+  multiplyMacros,
   gramsPerTablespoon,
   parseCountUnit,
   unitConversionFactor,
@@ -235,6 +236,39 @@ describe("scaledMacros", () => {
 
   test("handles a food with no per100g data", () => {
     const macros = scaledMacros({}, 100);
+    assert.equal(macros.calories, 0);
+    assert.equal(macros.sodium_mg, 0);
+  });
+});
+
+describe("multiplyMacros", () => {
+  const oneCookie = {
+    calories: 78,
+    protein_g: 1.2,
+    carbs_g: 9.5,
+    fat_g: 3.7,
+    fiber_g: 0.4,
+    sugar_g: 5.1,
+    sodium_mg: 55,
+  };
+
+  test("multiplies every field by the serving count", () => {
+    const macros = multiplyMacros(oneCookie, 3);
+    assert.equal(macros.calories, 234);
+    assert.equal(macros.protein_g, 3.6);
+    assert.equal(macros.carbs_g, 28.5);
+    assert.equal(macros.fat_g, 11.1);
+    assert.equal(macros.fiber_g, 1.2);
+    assert.equal(macros.sugar_g, 15.3);
+    assert.equal(macros.sodium_mg, 165);
+  });
+
+  test("a count of 1 leaves values unchanged", () => {
+    assert.deepEqual(multiplyMacros(oneCookie, 1), oneCookie);
+  });
+
+  test("handles missing fields as 0 rather than NaN", () => {
+    const macros = multiplyMacros({}, 3);
     assert.equal(macros.calories, 0);
     assert.equal(macros.sodium_mg, 0);
   });

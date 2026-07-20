@@ -6,6 +6,7 @@ import {
   defaultQuantity,
   toGrams,
   scaledMacros,
+  multiplyMacros,
   unitConversionFactor,
 } from "../../../shared/nutritionScaling.js";
 
@@ -35,6 +36,7 @@ export default function QuickAddFood({ onAdded }) {
   const [manualCalories, setManualCalories] = useState("");
   const [manualProtein, setManualProtein] = useState("");
   const [manualFiber, setManualFiber] = useState("");
+  const [manualServings, setManualServings] = useState(1);
   const [manualSaving, setManualSaving] = useState(false);
   const [manualError, setManualError] = useState(null);
 
@@ -46,6 +48,7 @@ export default function QuickAddFood({ onAdded }) {
   const [selected, setSelected] = useState(null);
   const [amount, setAmount] = useState(100);
   const [unit, setUnit] = useState("g");
+  const [servings, setServings] = useState(1);
   const [meal, setMeal] = useState(inferMealFromTime());
   const [date, setDate] = useState(todayISO());
   const [saving, setSaving] = useState(false);
@@ -130,6 +133,7 @@ export default function QuickAddFood({ onAdded }) {
     setSelected(food);
     setUnit("g");
     setAmount(defaultQuantity(food));
+    setServings(1);
     setAdjusting(false);
   }
 
@@ -158,7 +162,7 @@ export default function QuickAddFood({ onAdded }) {
     setError(null);
     try {
       const grams = toGrams(amount, unit, unitConversionFactor(unit, selected));
-      const computed = scaledMacros(selected, grams);
+      const computed = multiplyMacros(scaledMacros(selected, grams), servings);
       const macros = adjusting
         ? {
             ...computed,
@@ -169,7 +173,7 @@ export default function QuickAddFood({ onAdded }) {
             fiber_g: Number(fiberOverride) || 0,
           }
         : computed;
-      const qtyLabel = `${amount}${unit}`;
+      const qtyLabel = servings !== 1 ? `${amount}${unit} × ${servings}` : `${amount}${unit}`;
       await api.createFoodEntry({
         date,
         meal,
@@ -205,17 +209,19 @@ export default function QuickAddFood({ onAdded }) {
       await api.createFoodEntry({
         date,
         meal,
-        description: manualTitle.trim(),
+        description:
+          manualServings !== 1 ? `${manualTitle.trim()} (× ${manualServings})` : manualTitle.trim(),
         notes: manualNotes.trim() || null,
-        calories: Number(manualCalories) || 0,
-        protein_g: Number(manualProtein) || 0,
-        fiber_g: Number(manualFiber) || 0,
+        calories: (Number(manualCalories) || 0) * manualServings,
+        protein_g: (Number(manualProtein) || 0) * manualServings,
+        fiber_g: (Number(manualFiber) || 0) * manualServings,
       });
       setManualTitle("");
       setManualNotes("");
       setManualCalories("");
       setManualProtein("");
       setManualFiber("");
+      setManualServings(1);
       onAdded(date);
       loadRecent();
     } catch (err) {
@@ -226,7 +232,10 @@ export default function QuickAddFood({ onAdded }) {
   }
 
   const preview = selected
-    ? scaledMacros(selected, toGrams(amount, unit, unitConversionFactor(unit, selected)))
+    ? multiplyMacros(
+        scaledMacros(selected, toGrams(amount, unit, unitConversionFactor(unit, selected))),
+        servings
+      )
     : null;
 
   return (
@@ -297,6 +306,16 @@ export default function QuickAddFood({ onAdded }) {
               />
             </label>
             <label>
+              Servings
+              <input
+                type="number"
+                min="0"
+                step="0.5"
+                value={manualServings}
+                onChange={(e) => setManualServings(Number(e.target.value) || 0)}
+              />
+            </label>
+            <label>
               Meal
               <select value={meal} onChange={(e) => setMeal(e.target.value)}>
                 {MEALS.map((m) => (
@@ -316,6 +335,13 @@ export default function QuickAddFood({ onAdded }) {
               />
             </label>
           </div>
+
+          {manualServings !== 1 && manualCalories ? (
+            <div className="quick-add__preview tabular">
+              Total: {Math.round((Number(manualCalories) || 0) * manualServings)} kcal for {manualServings}{" "}
+              servings
+            </div>
+          ) : null}
 
           {manualError && <div className="quick-add__error">{manualError}</div>}
 
@@ -451,6 +477,16 @@ export default function QuickAddFood({ onAdded }) {
                   ) : null}
                 </div>
               </div>
+            </label>
+            <label>
+              Servings
+              <input
+                type="number"
+                min="0"
+                step="0.5"
+                value={servings}
+                onChange={(e) => setServings(Number(e.target.value) || 0)}
+              />
             </label>
             <label>
               Meal

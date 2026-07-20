@@ -116,3 +116,20 @@ export function scaledMacros(food, grams) {
     sodium_mg: Math.round((per100g.sodium_mg || 0) * factor),
   };
 }
+
+// Multiplies an already-computed macro/nutrient object by a serving count
+// (or any other scalar), using the same per-field rounding as scaledMacros.
+// Lets a UI take whatever single-serving amount it already computed (from
+// USDA data, a manual entry, or a user's own adjustment) and multiply it by
+// "how many of those" without re-deriving from per-100g data.
+export function multiplyMacros(macros, count) {
+  return {
+    calories: Math.round((macros.calories || 0) * count),
+    protein_g: Math.round((macros.protein_g || 0) * count * 10) / 10,
+    carbs_g: Math.round((macros.carbs_g || 0) * count * 10) / 10,
+    fat_g: Math.round((macros.fat_g || 0) * count * 10) / 10,
+    fiber_g: Math.round((macros.fiber_g || 0) * count * 10) / 10,
+    sugar_g: Math.round((macros.sugar_g || 0) * count * 10) / 10,
+    sodium_mg: Math.round((macros.sodium_mg || 0) * count),
+  };
+}

@@ -19,6 +19,7 @@ import {
   defaultQuantity,
   toGrams,
   scaledMacros,
+  multiplyMacros,
   unitConversionFactor,
 } from "calorie-tracker-shared/nutritionScaling.js";
 import { api } from "../../src/api";
@@ -54,6 +55,7 @@ export default function LogScreen() {
   const [selected, setSelected] = useState(null);
   const [amount, setAmount] = useState(100);
   const [unit, setUnit] = useState("g");
+  const [servings, setServings] = useState("1");
   const [meal, setMeal] = useState(inferMealFromTime());
   const [date, setDate] = useState(todayISO());
   const [saving, setSaving] = useState(false);
@@ -118,6 +120,7 @@ export default function LogScreen() {
     setSelected(food);
     setUnit("g");
     setAmount(defaultQuantity(food));
+    setServings("1");
     setSavedMessage(null);
     setAdjusting(false);
   }
@@ -152,7 +155,8 @@ export default function LogScreen() {
     setError(null);
     try {
       const grams = toGrams(Number(amount) || 0, unit, unitConversionFactor(unit, selected));
-      const computed = scaledMacros(selected, grams);
+      const servingsCount = Number(servings) || 0;
+      const computed = multiplyMacros(scaledMacros(selected, grams), servingsCount);
       const macros = adjusting
         ? {
             ...computed,
@@ -163,7 +167,7 @@ export default function LogScreen() {
             fiber_g: Number(fiberOverride) || 0,
           }
         : computed;
-      const qtyLabel = `${amount}${unit}`;
+      const qtyLabel = servingsCount !== 1 ? `${amount}${unit} × ${servingsCount}` : `${amount}${unit}`;
       await api.createFoodEntry({
         date,
         meal,
@@ -209,7 +213,10 @@ export default function LogScreen() {
   }
 
   const preview = selected
-    ? scaledMacros(selected, toGrams(Number(amount) || 0, unit, unitConversionFactor(unit, selected)))
+    ? multiplyMacros(
+        scaledMacros(selected, toGrams(Number(amount) || 0, unit, unitConversionFactor(unit, selected))),
+        Number(servings) || 0
+      )
     : null;
 
   if (scanning) {
@@ -298,6 +305,18 @@ export default function LogScreen() {
                 ))}
               </View>
             </View>
+
+            <Text style={[styles.label, { color: theme.textSecondary }]}>Servings</Text>
+            <TextInput
+              style={[
+                styles.input,
+                { width: 90, backgroundColor: theme.pagePlane, color: theme.textPrimary, borderColor: theme.border },
+              ]}
+              keyboardType="numeric"
+              inputAccessoryViewID={NUMERIC_KEYBOARD_ACCESSORY_ID}
+              value={servings}
+              onChangeText={(t) => setServings(t.replace(/[^0-9.]/g, ""))}
+            />
 
             <Text style={[styles.label, { color: theme.textSecondary }]}>Meal</Text>
             <View style={styles.mealRow}>
