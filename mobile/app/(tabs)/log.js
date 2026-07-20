@@ -254,7 +254,11 @@ export default function LogScreen() {
         {error ? <Text style={{ color: theme.statusCritical }}>{error}</Text> : null}
 
         {selected ? (
-          <View style={[styles.card, { backgroundColor: theme.surface1, borderColor: theme.border }]}>
+          <ScrollView
+            style={[styles.cardScroll, { backgroundColor: theme.surface1, borderColor: theme.border }]}
+            contentContainerStyle={styles.card}
+            keyboardShouldPersistTaps="handled"
+          >
             <Text style={[styles.cardTitle, { color: theme.textPrimary }]}>{selected.description}</Text>
 
             <View style={styles.fieldRow}>
@@ -447,12 +451,13 @@ export default function LogScreen() {
                 <Text style={styles.searchButtonText}>{saving ? "Adding…" : "Add to log"}</Text>
               </Pressable>
             </View>
-          </View>
+          </ScrollView>
         ) : results ? (
           <FlatList
             data={results}
             keyExtractor={(item) => String(item.fdcId)}
             contentContainerStyle={{ gap: 8 }}
+            keyboardShouldPersistTaps="handled"
             ListEmptyComponent={<EmptyState title="No matches found" />}
             renderItem={({ item }) => {
               const grams = defaultQuantity(item);
@@ -477,6 +482,7 @@ export default function LogScreen() {
             data={recent}
             keyExtractor={(item) => String(item.id)}
             contentContainerStyle={{ gap: 8 }}
+            keyboardShouldPersistTaps="handled"
             ListHeaderComponent={
               recent.length > 0 ? (
                 <Text style={[styles.label, { color: theme.textSecondary, marginBottom: 4 }]}>Recent</Text>
@@ -512,7 +518,8 @@ const styles = StyleSheet.create({
   searchButton: { borderRadius: radii.sm, paddingHorizontal: 16, justifyContent: "center" },
   searchButtonText: { color: "#fff", fontWeight: "700" },
   savedBanner: { fontWeight: "600" },
-  card: { borderWidth: 1, borderRadius: radii.lg, padding: 16, gap: 10 },
+  cardScroll: { borderWidth: 1, borderRadius: radii.lg },
+  card: { padding: 16, gap: 10 },
   cardTitle: { fontSize: 16, fontWeight: "700" },
   fieldRow: { flexDirection: "row", gap: 10, alignItems: "center" },
   unitToggle: { flexDirection: "row", gap: 6 },

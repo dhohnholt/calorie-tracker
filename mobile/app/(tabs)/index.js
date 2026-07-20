@@ -152,6 +152,7 @@ export default function TodayScreen() {
     <Screen>
       <ScrollView
         contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => load(date, true)} tintColor={theme.series1} />
         }

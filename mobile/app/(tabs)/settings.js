@@ -113,7 +113,7 @@ export default function SettingsScreen() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={[styles.title, { color: theme.textPrimary }]}>Settings</Text>
 
         <View style={[styles.card, { backgroundColor: theme.surface1, borderColor: theme.border }]}>

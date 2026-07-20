@@ -1,14 +1,5 @@
 import { useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useAuth } from "../authContext";
 import { useTheme, radii } from "../theme";
 import Screen from "./Screen";
@@ -42,86 +33,84 @@ export default function AuthScreen() {
 
   return (
     <Screen>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.content}>
-          <Text style={[styles.title, { color: theme.textPrimary }]}>Calorie Tracker</Text>
-          <Text style={[styles.subtitle, { color: theme.textMuted }]}>
-            {mode === "login" ? "Log in to your account" : "Create an account"}
-          </Text>
+      <ScrollView contentContainerStyle={styles.content}>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>Calorie Tracker</Text>
+        <Text style={[styles.subtitle, { color: theme.textMuted }]}>
+          {mode === "login" ? "Log in to your account" : "Create an account"}
+        </Text>
 
-          <View style={[styles.card, { backgroundColor: theme.surface1, borderColor: theme.border }]}>
-            {mode === "signup" ? (
-              <>
-                <Text style={[styles.label, { color: theme.textSecondary }]}>Display name</Text>
-                <TextInput
-                  style={[styles.input, { backgroundColor: theme.pagePlane, color: theme.textPrimary, borderColor: theme.border }]}
-                  placeholder="e.g. David"
-                  placeholderTextColor={theme.textMuted}
-                  value={name}
-                  onChangeText={setName}
-                />
-              </>
-            ) : null}
-
-            <Text style={[styles.label, { color: theme.textSecondary, marginTop: mode === "signup" ? 12 : 0 }]}>
-              Username
-            </Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: theme.pagePlane, color: theme.textPrimary, borderColor: theme.border }]}
-              placeholder="e.g. david"
-              placeholderTextColor={theme.textMuted}
-              autoCapitalize="none"
-              autoCorrect={false}
-              value={username}
-              onChangeText={setUsername}
-            />
-
-            <Text style={[styles.label, { color: theme.textSecondary, marginTop: 12 }]}>Password</Text>
-            <View style={styles.passwordWrap}>
+        <View style={[styles.card, { backgroundColor: theme.surface1, borderColor: theme.border }]}>
+          {mode === "signup" ? (
+            <>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>Display name</Text>
               <TextInput
-                style={[
-                  styles.input,
-                  styles.passwordInput,
-                  { backgroundColor: theme.pagePlane, color: theme.textPrimary, borderColor: theme.border },
-                ]}
-                placeholder={mode === "signup" ? "At least 8 characters" : "••••••••"}
+                style={[styles.input, { backgroundColor: theme.pagePlane, color: theme.textPrimary, borderColor: theme.border }]}
+                placeholder="e.g. David"
                 placeholderTextColor={theme.textMuted}
-                secureTextEntry={!showPassword}
-                value={password}
-                onChangeText={setPassword}
+                value={name}
+                onChangeText={setName}
               />
-              <Pressable style={styles.passwordToggle} onPress={() => setShowPassword((v) => !v)}>
-                <Text style={{ color: theme.series1, fontSize: 12, fontWeight: "600" }}>
-                  {showPassword ? "Hide" : "Show"}
-                </Text>
-              </Pressable>
-            </View>
+            </>
+          ) : null}
 
-            {error ? <Text style={{ color: theme.statusCritical, marginTop: 12 }}>{error}</Text> : null}
+          <Text style={[styles.label, { color: theme.textSecondary, marginTop: mode === "signup" ? 12 : 0 }]}>
+            Username
+          </Text>
+          <TextInput
+            style={[styles.input, { backgroundColor: theme.pagePlane, color: theme.textPrimary, borderColor: theme.border }]}
+            placeholder="e.g. david"
+            placeholderTextColor={theme.textMuted}
+            autoCapitalize="none"
+            autoCorrect={false}
+            value={username}
+            onChangeText={setUsername}
+          />
 
-            <Pressable
-              style={[styles.submitButton, { backgroundColor: theme.series1 }]}
-              onPress={handleSubmit}
-              disabled={submitting}
-            >
-              <Text style={styles.submitButtonText}>
-                {submitting ? "Please wait…" : mode === "login" ? "Log in" : "Sign up"}
+          <Text style={[styles.label, { color: theme.textSecondary, marginTop: 12 }]}>Password</Text>
+          <View style={styles.passwordWrap}>
+            <TextInput
+              style={[
+                styles.input,
+                styles.passwordInput,
+                { backgroundColor: theme.pagePlane, color: theme.textPrimary, borderColor: theme.border },
+              ]}
+              placeholder={mode === "signup" ? "At least 8 characters" : "••••••••"}
+              placeholderTextColor={theme.textMuted}
+              secureTextEntry={!showPassword}
+              value={password}
+              onChangeText={setPassword}
+            />
+            <Pressable style={styles.passwordToggle} onPress={() => setShowPassword((v) => !v)}>
+              <Text style={{ color: theme.series1, fontSize: 12, fontWeight: "600" }}>
+                {showPassword ? "Hide" : "Show"}
               </Text>
             </Pressable>
           </View>
 
+          {error ? <Text style={{ color: theme.statusCritical, marginTop: 12 }}>{error}</Text> : null}
+
           <Pressable
-            onPress={() => {
-              setMode((m) => (m === "login" ? "signup" : "login"));
-              setError(null);
-            }}
+            style={[styles.submitButton, { backgroundColor: theme.series1 }]}
+            onPress={handleSubmit}
+            disabled={submitting}
           >
-            <Text style={[styles.switchLink, { color: theme.series1 }]}>
-              {mode === "login" ? "Need an account? Sign up" : "Already have an account? Log in"}
+            <Text style={styles.submitButtonText}>
+              {submitting ? "Please wait…" : mode === "login" ? "Log in" : "Sign up"}
             </Text>
           </Pressable>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </View>
+
+        <Pressable
+          onPress={() => {
+            setMode((m) => (m === "login" ? "signup" : "login"));
+            setError(null);
+          }}
+        >
+          <Text style={[styles.switchLink, { color: theme.series1 }]}>
+            {mode === "login" ? "Need an account? Sign up" : "Already have an account? Log in"}
+          </Text>
+        </Pressable>
+      </ScrollView>
     </Screen>
   );
 }

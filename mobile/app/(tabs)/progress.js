@@ -94,6 +94,7 @@ export default function ProgressScreen() {
     <Screen>
       <ScrollView
         contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={theme.series1} />
         }
