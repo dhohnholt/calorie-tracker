@@ -30,7 +30,9 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow DH Calorie Tracker to use your camera to scan food barcodes."
+          "cameraPermission": "Allow DH Calorie Tracker to use your camera to scan food barcodes.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
         }
       ]
     ]
