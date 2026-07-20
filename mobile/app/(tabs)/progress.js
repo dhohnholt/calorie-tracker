@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ImageBackground, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { todayISO, daysAgoISO, formatShortDate } from "calorie-tracker-shared/dates.js";
 import { computeWeightLossStreak } from "calorie-tracker-shared/weightTrend.js";
@@ -101,7 +101,11 @@ export default function ProgressScreen() {
       >
         <Text style={[styles.title, { color: theme.textPrimary }]}>Progress</Text>
 
-        <View style={[styles.card, { backgroundColor: theme.surface1, borderColor: theme.border }]}>
+        <ImageBackground
+          source={require("../../assets/scale.jpg")}
+          imageStyle={[styles.cardBgImage, { opacity: theme.scheme === "dark" ? 0.16 : 0.22 }]}
+          style={[styles.card, styles.cardBg, { backgroundColor: theme.surface1, borderColor: theme.border }]}
+        >
           {latest ? (
             <>
               <Text style={[styles.bigNumber, { color: theme.textPrimary }]}>
@@ -127,7 +131,7 @@ export default function ProgressScreen() {
           {entries.length > 1 && (
             <WeightChart data={entries} goalWeight={goalWeight} unit={unit} />
           )}
-        </View>
+        </ImageBackground>
 
         <View style={[styles.card, { backgroundColor: theme.surface1, borderColor: theme.border }]}>
           <Text style={[styles.label, { color: theme.textSecondary }]}>
@@ -184,6 +188,8 @@ const styles = StyleSheet.create({
   content: { padding: 16, gap: 16 },
   title: { fontSize: 22, fontWeight: "700" },
   card: { borderWidth: 1, borderRadius: radii.lg, padding: 16, alignItems: "center", gap: 4 },
+  cardBg: { overflow: "hidden" },
+  cardBgImage: { borderRadius: radii.lg, resizeMode: "cover" },
   bigNumber: { fontSize: 32, fontWeight: "800" },
   caption: { fontSize: 14 },
   streakText: { fontSize: 13, fontWeight: "700", marginTop: 4 },
