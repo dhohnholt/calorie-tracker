@@ -103,9 +103,10 @@ export default function ProgressScreen() {
 
         <ImageBackground
           source={require("../../assets/scale.jpg")}
-          imageStyle={[styles.cardBgImage, { opacity: theme.scheme === "dark" ? 0.16 : 0.22 }]}
+          imageStyle={[styles.cardBgImage, { opacity: theme.scheme === "dark" ? 0.28 : 0.4 }]}
           style={[styles.card, styles.cardBg, { backgroundColor: theme.surface1, borderColor: theme.border }]}
         >
+          <View style={styles.cardBgOverlay} />
           {latest ? (
             <>
               <Text style={[styles.bigNumber, { color: theme.textPrimary }]}>
@@ -190,6 +191,11 @@ const styles = StyleSheet.create({
   card: { borderWidth: 1, borderRadius: radii.lg, padding: 16, alignItems: "center", gap: 4 },
   cardBg: { overflow: "hidden" },
   cardBgImage: { borderRadius: radii.lg, resizeMode: "cover" },
+  cardBgOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    borderRadius: radii.lg,
+  },
   bigNumber: { fontSize: 32, fontWeight: "800" },
   caption: { fontSize: 14 },
   streakText: { fontSize: 13, fontWeight: "700", marginTop: 4 },
