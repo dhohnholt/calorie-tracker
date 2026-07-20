@@ -963,9 +963,17 @@
 }
 
 .quick-add__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
   color: var(--text-muted);
   font-size: 13px;
   padding: 8px 0;
+}
+
+.quick-add__empty .quick-add__adjust-link {
+  margin-top: 0;
 }
 
 .quick-add__results {

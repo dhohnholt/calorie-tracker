@@ -11,12 +11,17 @@ export function LoadingState({ label = "Loading…" }) {
   );
 }
 
-export function EmptyState({ title, hint }) {
+export function EmptyState({ title, hint, actionLabel, onAction }) {
   const theme = useTheme();
   return (
     <View style={styles.center}>
       <Text style={[styles.title, { color: theme.textSecondary }]}>{title}</Text>
       {hint ? <Text style={[styles.label, { color: theme.textMuted }]}>{hint}</Text> : null}
+      {actionLabel && onAction ? (
+        <Text style={[styles.retry, { color: theme.series1 }]} onPress={onAction}>
+          {actionLabel}
+        </Text>
+      ) : null}
     </View>
   );
 }

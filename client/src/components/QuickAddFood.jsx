@@ -401,7 +401,22 @@ export default function QuickAddFood({ onAdded }) {
 
       {results && !selected && (
         <ul className="quick-add__results">
-          {results.length === 0 && <li className="quick-add__empty">No matches found</li>}
+          {results.length === 0 && (
+            <li className="quick-add__empty">
+              No matches found
+              <button
+                type="button"
+                className="quick-add__adjust-link"
+                onClick={() => {
+                  setQuery("");
+                  setResults(null);
+                  setError(null);
+                }}
+              >
+                Clear search
+              </button>
+            </li>
+          )}
           {results.map((food) => {
             const grams = defaultQuantity(food);
             const cals = scaledMacros(food, grams).calories;

@@ -116,6 +116,12 @@ export default function LogScreen() {
     handleSearch(barcode);
   }
 
+  function handleClearSearch() {
+    setQuery("");
+    setResults(null);
+    setError(null);
+  }
+
   function handleSelect(food) {
     setSelected(food);
     setUnit("g");
@@ -478,7 +484,9 @@ export default function LogScreen() {
             keyExtractor={(item) => String(item.fdcId)}
             contentContainerStyle={{ gap: 8 }}
             keyboardShouldPersistTaps="handled"
-            ListEmptyComponent={<EmptyState title="No matches found" />}
+            ListEmptyComponent={
+              <EmptyState title="No matches found" actionLabel="Clear search" onAction={handleClearSearch} />
+            }
             renderItem={({ item }) => {
               const grams = defaultQuantity(item);
               const cals = scaledMacros(item, grams).calories;
